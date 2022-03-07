@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "aiogram-template"
+version = "0.1.0"
+description = ""
+authors = ["rdfsx <m315498@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8.10"
+environs = "^9.3.4"
+loguru = "0.6.0"
+aiofile = "^3.7.2"
+aiogram = "3.0.0b1"
+beanie = "1.9.2"
+uvloop = "^0.16.0"
+ujson = "^5.1.0"
+aiohttp = {extras = ["speedups"], version = "^3.8.1"}
+aiolimiter = "^1.0.0"
+pymongo = {version = "3.12", extras = ["srv"]}
+numpy = "^1.22.2"
+opencv-python = "^4.5.5"
+torch = "^1.10.2"
+torchvision = "^0.11.3"
+sklearn = "^0.0"
+matplotlib = "^3.5.1"
+tqdm = "^4.62.3"
+dp = "^1.00"
+python-i18n = {extras = ["YAML"], version = "^0.3.9"}
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
