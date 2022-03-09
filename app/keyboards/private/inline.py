@@ -1,44 +1,53 @@
 from aiogram.dispatcher.filters.callback_data import CallbackData
-from beanie import PydanticObjectId
 
+from app.models.route import PaymentType, PaymentTypeLocales, ServiceType, ServiceTypeLocals
 from app.utils.markup_constructor import InlineMarkupConstructor
 
 
-class ExampleMarkup(InlineMarkupConstructor):
-    class CD(CallbackData, prefix='test'):
-        number: str
+class ConfirmTownMarkup(InlineMarkupConstructor):
+    class CD(CallbackData, prefix='confirm_town'):
+        status: str
 
     def get(self):
-        schema = [3, 2]
         actions = [
-            {'text': '1', 'callback_data': self.CD(number='1')},
-            {'text': '2', 'callback_data': self.CD(number='2').pack()},
-            {'text': '3', 'callback_data': '3'},
-            {'text': '4', 'callback_data': self.CD(number='4').pack()},
-            {'text': '6', 'callback_data': '6'},
+            {'text': 'Да', 'callback_data': self.CD(status='yes').pack()},
+            {'text': 'Нет', 'callback_data': self.CD(status='no').pack()},
         ]
+        schema = [1, 1]
         return self.markup(actions, schema)
 
 
-class LoupeCD(CallbackData, prefix='radius'):
-    radius: int
-    callback_id: str
+class GetPaymentMarkup(InlineMarkupConstructor):
+    class CD(CallbackData, prefix='add_route'):
+        payment_type: int
 
-class LoupeMarkup(InlineMarkupConstructor):
-    def get(self, callback_id: PydanticObjectId, radius: int = 150):
-        delta = 30
+    def get(self):
+        actions = [
+            {'text': PaymentTypeLocales[PaymentType.WithoutPayment],
+             'callback_data': self.CD(payment_type=PaymentType.WithoutPayment).pack()},
+            {'text': PaymentTypeLocales[PaymentType.WithPayment],
+             'callback_data': self.CD(payment_type=PaymentType.WithPayment).pack()},
+            {'text': PaymentTypeLocales[PaymentType.NotDecided],
+             'callback_data': self.CD(payment_type=PaymentType.NotDecided).pack()},
+        ]
+        schema = [1, 1, 1]
+        return self.markup(actions, schema)
+
+
+class GetServiceMarkup(InlineMarkupConstructor):
+    class CD(CallbackData, prefix='add_route'):
+        service_type: int
+
+    def get(self, services=[]):
         actions = []
-        if radius > 0:
-            actions.append({'text': f'-{delta}', 'callback_data': LoupeCD(radius=radius - delta, callback_id=str(callback_id)).pack()})
-        else:
-            actions.append({'text': '⏺', 'callback_data': '_'})
-
-        actions.append({'text': radius, 'callback_data': '_'})
-
-        if radius < 500:
-            actions.append({'text': f'+{delta}', 'callback_data': LoupeCD(radius=radius + delta, callback_id=str(callback_id)).pack()})
-        else:
-            actions.append({'text': '⏺', 'callback_data': '_'})
-
-        schema = [3]
+        schema = []
+        for service in ServiceType:
+            schema.append(1)
+            actions.append({
+                'text': ServiceTypeLocals[service] + '✔️' if service in services else ServiceTypeLocals[service],
+                'callback_data': self.CD(service_type=service).pack()
+            })
+        if len(services) > 0:
+            schema.append(1)
+            actions.append({'text': 'Подтвердить', 'callback_data': 'accept'})
         return self.markup(actions, schema)

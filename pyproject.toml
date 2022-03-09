@@ -25,6 +25,7 @@ matplotlib = "^3.5.1"
 tqdm = "^4.62.3"
 dp = "^1.00"
 python-i18n = {extras = ["YAML"], version = "^0.3.9"}
+geopy = "^2.2.0"
 
 [tool.poetry.dev-dependencies]
 
