@@ -18,28 +18,17 @@ class ServiceType(IntEnum):
     Package = 4
 
 
-class RouteModel(TimeBaseModel):
+class ServiceModel(TimeBaseModel):
     id: int = Field(...)
     departure_date: datetime = Field(...)
     departure_town: str = Field(...)
+    driver_name: str = Field(...)
     arrival_town: str = Field(...)
     payment_type: PaymentType = Field(...)
-    favors: List[ServiceType] = Field(...)
+    service_types: List[ServiceType] = Field(...)
 
     class Collection:
         name = "RouteModel"
 
 
-ServiceTypeLocals = {
-    ServiceType.Passengers: 'Пассажиры',
-    ServiceType.PassengersWithPets: 'Пассажиры с животными',
-    ServiceType.Documents: 'Документы',
-    ServiceType.Package: 'Посылка'
-}
 
-
-PaymentTypeLocales = {
-    PaymentType.WithoutPayment: 'Без оплаты',
-    PaymentType.WithPayment: 'С оплатой',
-    PaymentType.NotDecided: 'Не определился'
-}

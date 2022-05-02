@@ -1,8 +1,10 @@
 from aiogram import Dispatcher
 
-from app.handlers.private import default, start, help_, add_route
+from app.handlers.private import default, start, help_, add_route, test
 
 
 def setup(dp: Dispatcher):
-    for module in (start, add_route):
-        module.setup(dp)
+    pass
+    # for module in (start, ):
+    # # for module in (test, ):
+    #     module.setup(dp)

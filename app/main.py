@@ -24,11 +24,13 @@ async def main():
 
     admin_router = Router()
     dp.include_router(admin_router)
+
     regular_router = Router()
     dp.include_router(regular_router)
 
     middlewares.setup(dp)
     handlers.setup_all_handlers(regular_router, admin_router)
+
     logger.setup_logger()
 
     mongo = MyBeanieMongo()

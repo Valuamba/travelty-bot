@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  db:
+    image: 'mongo'
+    container_name: 'mongo-db'
+    environment:
+      - MONGO_INITDB_DATABASE=test-local-db
+      - MONGO_INITDB_USERNAME=admin
+      - MONGO_INITDB_PASSWORD=16zomole
+    ports:
+      - '27017-27019:27017-27019'
