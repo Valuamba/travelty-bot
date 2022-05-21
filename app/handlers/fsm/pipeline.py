@@ -1,7 +1,8 @@
 import asyncio
+from itertools import chain
 from typing import Union, Any, List
-from aiogram import Bot, Dispatcher, Router, types
-from aiogram.dispatcher.event.handler import HandlerType
+from aiogram import Bot, Dispatcher, Router, types, F
+from aiogram.dispatcher.event.handler import HandlerType, FilterType, FilterObject
 from aiogram.dispatcher.fsm.context import FSMContext
 from aiogram.dispatcher.fsm.state import StatesGroup, State
 from aiogram.types import CallbackQuery
@@ -20,18 +21,24 @@ class FSMPipeline:
         route_len = len(self.pipeline)
         for idx, step_pipeline in enumerate(self.pipeline):
             current_state = await state.get_state()
-            if (isinstance(step_pipeline, FSMPipeline) and any(
-                    step.state.state == current_state for step in step_pipeline.pipeline
-                    )) \
-                    or ((isinstance(step_pipeline, MessageStep) or isinstance(step_pipeline, CallbackStep
-                                                                              )) and step_pipeline.state.state == current_state):
+            if (isinstance(step_pipeline, FSMPipeline) and any(step.state.state == current_state for step in step_pipeline.pipeline)) \
+                    or ((isinstance(step_pipeline, (MessageStep, CallbackStep))) and step_pipeline.state.state == current_state):
                 if idx != route_len - 1:
-                    next_pipeline = self.pipeline[idx + 1]
-                    if isinstance(next_pipeline, FSMPipeline):
-                        next_pipeline = next_pipeline.pipeline[0]
-                    if not only_state:
-                        await next_pipeline.info_handler(ctx, bot=bot, state=state)
-                    await state.set_state(next_pipeline.state)
+                    for deep in [1, 2]:
+                        if len(self.pipeline) > idx + deep:
+                            next_pipeline = self.pipeline[idx + deep]
+                            if isinstance(next_pipeline, FSMPipeline):
+                                next_pipeline = next_pipeline.pipeline[0]
+
+                            if next_pipeline.step_filter:
+                                check = await next_pipeline.step_filter.call(ctx, state)
+                                if not check:
+                                    continue
+
+                            if not only_state:
+                                await next_pipeline.info_handler(ctx, bot=bot, state=state)
+                            await state.set_state(next_pipeline.state)
+                            break
                 else:
                     raise Exception("Cannot move pointer to next state, because you are in last state")
                 return
@@ -86,12 +93,21 @@ class FSMPipeline:
                     or ((isinstance(step_pipeline, MessageStep) or isinstance(step_pipeline, CallbackStep
                                                                               )) and step_pipeline.state.state == current_state):
                 if idx > 0:
-                    prev_pipeline = self.pipeline[idx - 1]
-                    if isinstance(prev_pipeline, FSMPipeline):
-                        prev_pipeline = prev_pipeline.pipeline[0]
-                    if not only_state:
-                        await prev_pipeline.info_handler(ctx, bot=bot, state=state)
-                    await state.set_state(prev_pipeline.state)
+                    for deep in [1, 2]:
+                        if idx - deep >= 0:
+                            prev_pipeline = self.pipeline[idx - deep]
+                            if isinstance(prev_pipeline, FSMPipeline):
+                                prev_pipeline = prev_pipeline.pipeline[0]
+
+                            if prev_pipeline.step_filter:
+                                check = await prev_pipeline.step_filter.call(ctx, state)
+                                if not check:
+                                    continue
+
+                            if not only_state:
+                                await prev_pipeline.info_handler(ctx, bot=bot, state=state)
+                            await state.set_state(prev_pipeline.state)
+                            break
                 else:
                     raise Exception("Cannot move pointer to prev state, because you are in first state")
                 return
@@ -109,8 +125,6 @@ class FSMPipeline:
                         router.callback_query.register(inline_handler[1], inline_handler[0], state=state_pipeline.state)
 
                 if isinstance(state_pipeline, MessageStep):
-                    router.message.register(state_pipeline.handler, state=state_pipeline.state)
+                    router.message.register(state_pipeline.handler, *state_pipeline.filters, state=state_pipeline.state)
                 elif isinstance(state_pipeline, CallbackStep):
-                    router.callback_query.register(state_pipeline.handler, state_pipeline.filter,
-                                                   state=state_pipeline.state
-                                                   )
+                    router.callback_query.register(state_pipeline.handler, *state_pipeline.filters, state=state_pipeline.state)

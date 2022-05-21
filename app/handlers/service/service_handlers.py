@@ -24,6 +24,7 @@ from app.handlers.service.service_info import \
     juridical_status_info, contact_name_info, company_name_info, service_info, \
     payment_type_info, pick_date_info, select_date_info, commentary_info, photo_info, phone_number_info, \
     accept_result_info, send_route_on_moderation, pick_route_point, address_info, confirm_address_info
+from app.handlers.test import DataValueFilter
 from app.keyboards.private.add_route import AddRouteInlineMarkup, ConfirmTownCD, JuridicalStatusCD, ServiceTypeCD, \
     NavMarkupCD, PaymentCD, PickDateCD, PickAddressCD
 from app.keyboards.simple_calendar import SimpleCalendar, SimpleCalendarCD
@@ -34,7 +35,6 @@ from app.utils.update import get_chat_id, get_user_id
 
 fsmPipeline = FSMPipeline()
 address_pipeline = FSMPipeline()
-juridical_pipeline = FSMPipeline()
 departure_date_pipeline = FSMPipeline()
 
 
@@ -107,10 +107,10 @@ async def contact_name_handler(msg: Message, bot: Bot, state: FSMContext):
 async def juridical_status_handler(ctx: CallbackQuery, callback_data: JuridicalStatusCD, bot: Bot, state: FSMContext):
     if callback_data.status == JuridicalStatus.IndividualEntrepreneur:
         await state.update_data(**{Fields.JURIDICAL_STATUS: callback_data.status})
-        await juridical_pipeline.move_to(ctx, bot, state, RoutePrivate.COMPANY_NAME)
+        await fsmPipeline.next(ctx, bot, state)
     elif callback_data.status == JuridicalStatus.Individual:
         await state.update_data(**{Fields.JURIDICAL_STATUS: callback_data.status})
-        await juridical_pipeline.move_to(ctx, bot, state, RoutePrivate.CONTACT_NAME)
+        await fsmPipeline.next(ctx, bot, state)
     else:
         raise Exception(f'The juridical status [{callback_data.status}] cannot be handled')
 
@@ -179,6 +179,7 @@ async def phone_number_handler(msg: Message, bot: Bot, state: FSMContext):
         phone_number = phonenumbers.parse(msg.text)
         if phonenumbers.is_valid_number(phone_number):
             data[Fields.PHONE_NUMBER] = msg.text
+            await state.update_data(data)
             await next(msg, bot, state)
         else:
             await step_info(msg, state, bot, text="Не корректный номер телефона, повторите еще раз",
@@ -300,7 +301,7 @@ def setup(dp: Dispatcher):
     address_pipeline.set_pipeline([
         step_types.CallbackStep(state=RoutePrivate.PICK_ADDRESS, handler=pick_route_handler,
                                 info_handler=pick_route_point,
-                                filter=PickAddressCD.filter(),
+                                filters=[PickAddressCD.filter()],
                                 inline_navigation_handler=[next_inline, add_proxy_point, prev_inline]
                                 ),
         step_types.MessageStep(state=RoutePrivate.WRITE_ADDRESS, handler=address_handler,
@@ -309,36 +310,36 @@ def setup(dp: Dispatcher):
                                ),
         step_types.CallbackStep(state=RoutePrivate.CONFIRM_ADDRESS, handler=address_confirm_handler,
                                 info_handler=confirm_address_info,
-                                filter=ConfirmTownCD.filter()
+                                filters=[ConfirmTownCD.filter()]
                                 )
     ])
 
-    juridical_pipeline.set_pipeline([
-        step_types.CallbackStep(state=RoutePrivate.JURIDICAL_STATUS, handler=juridical_status_handler,
+    juridical_status = step_types.CallbackStep(state=RoutePrivate.JURIDICAL_STATUS, handler=juridical_status_handler,
                                 info_handler=juridical_status_info,
-                                filter=JuridicalStatusCD.filter(),
+                                filters=[JuridicalStatusCD.filter()],
                                 inline_navigation_handler=[prev_inline, next_inline]
-                                ),
-        step_types.MessageStep(state=RoutePrivate.COMPANY_NAME, handler=company_name_handler,
+                                )
+
+    company_name = step_types.MessageStep(state=RoutePrivate.COMPANY_NAME, handler=company_name_handler,
                                info_handler=company_name_info,
-                               inline_navigation_handler=[prev_inline]
-                               ),
-        step_types.MessageStep(state=RoutePrivate.CONTACT_NAME, handler=contact_name_handler,
-                               info_handler=contact_name_info,
-                               inline_navigation_handler=[prev_inline]
+                                step_filter=DataValueFilter(key=Fields.JURIDICAL_STATUS, value=JuridicalStatus.IndividualEntrepreneur),
+                               inline_navigation_handler=[prev_inline, next_inline]
                                )
-    ]
-    )
+
+    contact_name = step_types.MessageStep(state=RoutePrivate.CONTACT_NAME, handler=contact_name_handler,
+                                          info_handler=contact_name_info,
+                                          step_filter=DataValueFilter(key=Fields.JURIDICAL_STATUS, value=JuridicalStatus.Individual),
+                                          inline_navigation_handler=[prev_inline, next_inline])
 
     departure_date_pipeline.set_pipeline([
         step_types.CallbackStep(state=RoutePrivate.PICK_DATE_ID, handler=pick_date_handler,
                                 info_handler=pick_date_info,
-                                filter=PickDateCD.filter(),
+                                filters=[PickDateCD.filter()],
                                 inline_navigation_handler=[next_inline, prev_inline],
                                 ),
         step_types.CallbackStep(state=RoutePrivate.SELECT_DATE, handler=select_date_handler,
                                 info_handler=select_date_info,
-                                filter=SimpleCalendarCD.filter(),
+                                filters=[SimpleCalendarCD.filter()],
                                 ),
     ]
     )
@@ -349,13 +350,14 @@ def setup(dp: Dispatcher):
                                         )
 
     payment_type = step_types.CallbackStep(state=RoutePrivate.PAYMENT_TYPE, handler=payment_type_handler,
-                                           info_handler=payment_type_info, filter=PaymentCD.filter(),
+                                           info_handler=payment_type_info,
+                                           filters=[PaymentCD.filter()],
                                            inline_navigation_handler=[prev_inline, next_inline]
                                            )
 
     service_type = step_types.CallbackStep(state=RoutePrivate.SELECT_SERVICE, handler=service_handler,
                                            info_handler=service_info,
-                                           filter=ServiceTypeCD.filter(),
+                                           filters=[ServiceTypeCD.filter()],
                                            inline_navigation_handler=[next_inline]
                                            )
 
@@ -371,14 +373,16 @@ def setup(dp: Dispatcher):
 
     accept_route = step_types.CallbackStep(state=RoutePrivate.ACCEPT_ROUTE, handler=handle_accept_info,
                                            info_handler=accept_result_info,
-                                           filter=NavMarkupCD.filter(),
+                                           filters=[NavMarkupCD.filter()],
                                           )
 
     fsmPipeline.set_pipeline([
         service_type,
         address_pipeline,
         departure_date_pipeline,
-        juridical_pipeline,
+        juridical_status,
+        contact_name,
+        company_name,
         phone_number,
         payment_type,
         photo,

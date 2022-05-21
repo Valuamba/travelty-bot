@@ -32,7 +32,7 @@ async def company_name_info(ctx: Any, bot: Bot, state: FSMContext):
     text = f"🌐 Введите наименование ИП:"
 
     if conditon:
-        text += f"\n<b>Введенное наименование:</b> {company_name}"
+        text += f"\n\n📝Введенное наименование: {company_name}"
 
     help = "🔎 Введенное вами наименование будет опубликовано вместе с анкетой."
     await step_info(ctx, state, bot, text=_resolve_text(text, help),
@@ -44,7 +44,7 @@ async def contact_name_info(ctx: Any, bot: Bot, state: FSMContext):
     conditon = company_name is not None
     text = f"🤳 Введите имя контактного лица:"
     if conditon:
-        text += f"\n<b>Введенное контактное лицо:</b> {company_name}"
+        text += f"\n\n📝Введенное контактное лицо: {company_name}"
     help = "🔎 Введенное вами имя будет опубликовано вместе с анкетой."
     await step_info(ctx, state, bot, text=_resolve_text(text, help),
                     reply_markup=AddRouteInlineMarkup().contact_name_markup(conditon))
@@ -86,7 +86,7 @@ async def address_info(ctx: Any, bot: Bot, state: FSMContext):
     text = "Введите город/населенный пункт/деревню/страну."
     address = data.get(address_key, None)
     if address:
-        text += f"\n\n<b>Введенный ранее адрес:</b> {address['display_name']}"
+        text += f"\n\n📝Введенный ранее адрес: {address['display_name']}"
     help = "⚠️Для более точного поиска локации введите полный адрес, например: 'Брест, Беларусь'"
     await step_info(ctx, state, bot, text=_resolve_text(text, help),
                     reply_markup=AddRouteInlineMarkup().get_address_markup(address_key), update_type=CallbackQuery)
@@ -107,17 +107,23 @@ async def select_date_info(ctx: Any, bot: Bot, state: FSMContext):
 
 
 async def commentary_info(ctx: Any, bot: Bot, state: FSMContext):
+    commentary = (await state.get_data()).get(Fields.COMMENTARY, None)
+    condition = commentary is not None
     text = "📎 Оставьте дополнительный комментарий.:"
-    help = "⚠ Максимально допустимое количество символо - 150."
+    if condition:
+        text += f"\n\nВведенный комментарий: {commentary}"
+    help = "⚠ Максимально допустимое количество символов - 150."
     await step_info(ctx, state, bot, text=_resolve_text(text, help),
-                    reply_markup=AddRouteInlineMarkup().commentary_markup(), update_type=CallbackQuery)
+                    reply_markup=AddRouteInlineMarkup().commentary_markup(condition), update_type=CallbackQuery)
 
 
 async def photo_info(ctx: Any, bot: Bot, state: FSMContext):
+    photo = (await state.get_data()).get(Fields.PHOTO, None)
+    condition = photo is not None
     text = "📸 Прикрепите фотографию вашего авто."
     help = '❗ Рекомендуем не показывать номер автомобиля.'
     await step_info(ctx, state, bot, text=_resolve_text(text, help),
-                    reply_markup=AddRouteInlineMarkup().photo_markup(), update_type=CallbackQuery)
+                    reply_markup=AddRouteInlineMarkup().photo_markup(condition), update_type=CallbackQuery)
 
 
 async def phone_number_info(ctx: Any, bot: Bot, state: FSMContext):
@@ -125,7 +131,7 @@ async def phone_number_info(ctx: Any, bot: Bot, state: FSMContext):
     condition = phone_number is not None
     text = '☎️ Введите номер телефона вручную или нажмите на кнопку ниже.'
     if condition:
-        text += f"\n<b>Введенный номер телефона:</b> {phone_number}"
+        text += f"\n\n📝Введенный номер телефона: {phone_number}"
     help = '🔎 Совет: Нажмите на кнопку ниже или введите вручную, например +375 29 821 5478.'
     await step_info(ctx, state, bot, text=text, reply_markup=AddRouteInlineMarkup().phone_number_markup(condition), update_type=CallbackQuery)
     await step_info(ctx, state, bot, text=help, reply_markup=RouteReplyMarkup().get_phone_number_keyboard(),

@@ -6,4 +6,4 @@ class Fields:
     PAYMENT_TYPE = "payment_type"
     COMMENTARY = "commentary"
     PHOTO = "photo_path"
-    PHONE_NUMBER = "payment_type"
+    PHONE_NUMBER = "phone_number"

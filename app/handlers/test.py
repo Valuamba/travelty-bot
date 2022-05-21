@@ -1,33 +1,36 @@
-from aiogram import Dispatcher, Bot
-from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
+from typing import Any
 
+from aiogram import Dispatcher, Bot
+from aiogram.dispatcher.filters import BaseFilter
+from aiogram.dispatcher.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton, TelegramObject
+
+from app.handlers.service.helpers.constants import Fields
+from app.models.sql.enums import JuridicalStatus
+from app.states.private_states import RoutePrivate
 from app.utils.markup_constructor.refactor import refactor_keyboard
 
 
+class DataValueFilter(BaseFilter):
+    key: Any
+    value: Any
+
+    # def __init__(self, key, value):
+    #     key = key
+    #     value = value
+
+    async def __call__(self, obj: TelegramObject, state: FSMContext) -> bool:
+        data = await state.get_data()
+        return data.get(self.key, None) == self.value
+
+
 async def get_help_message(m: Message):
-    refactor_keyboard(2, 8)
-    some_inl = InlineKeyboardButton(text='some', callback_data='some')
-    extra_some_inl = InlineKeyboardButton(text='some some some', callback_data='some')
-    kok_inl = InlineKeyboardButton(text='Перевоз крупногабаритных предметов', callback_data='some')
-    await m.answer("This is a bot",
-                   reply_markup=InlineKeyboardMarkup(
-                       inline_keyboard = [
-                           [some_inl, some_inl],
-                           [some_inl, some_inl],
-                           [extra_some_inl, some_inl],
-                           [kok_inl, some_inl],
-                           [some_inl, some_inl],
-                       ]
-                   ))
-    # await m.answer("This is a bot", reply_markup=GetServiceMarkup().get())
-    # await m.answer("This is a bot", reply_markup=NavMarkup().get())
-
-
-async def handle_some(ctx: CallbackQuery, bot: Bot):
     pass
 
 
 def setup(dp: Dispatcher):
+    filters = [DataValueFilter(key=Fields.JURIDICAL_STATUS, value=JuridicalStatus.Individual)]
+    dp.message.register(get_help_message, *filters, state=RoutePrivate.PHOTO)
     pass
     # dp.message.register(get_help_message, commands="test")
     # dp.callback_query.register(handle_some,)

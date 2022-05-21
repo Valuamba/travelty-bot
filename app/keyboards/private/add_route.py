@@ -1,4 +1,5 @@
 import re
+from typing import Tuple
 
 from aiogram.types import KeyboardButtonPollType
 
@@ -67,8 +68,10 @@ class AddRouteInlineMarkup(InlineMarkupConstructor):
 
         schema = [1, 1, 1, 1, 1, 1]
 
-        if len(services) > 0:
-            self._add_next(actions, schema)
+        # if len(services) > 0:
+        #     self._add_next(actions, schema)
+
+        self.__add_navigation_buttons(actions, schema, len(services) > 0, (False, False, True, True))
         # self._add_back(actions, schema)
         return self.markup(actions, schema)
 
@@ -82,22 +85,13 @@ class AddRouteInlineMarkup(InlineMarkupConstructor):
                 text = PaymentTypeLocales[type]
             actions.append({'text': text, 'callback_data': PaymentCD(payment_type=type).pack()})
             schema.append(1)
-
-        self._add_back(actions)
-        if payment_type:
-            self._add_next(actions)
-            schema += refactor_keyboard(2, actions[-2:])
-        else:
-            schema.append(1)
+        self.__add_navigation_buttons(actions, schema, payment_type is not None)
         return self.markup(actions, schema)
 
     def get_address_markup(self, address_key):
         actions = []
         schema = []
-        self._add_back(actions, schema)
-        if address_key.startswith('address'):
-            self._remove(actions, schema, address_key)
-            schema = [2]
+        self.__add_navigation_buttons(actions, schema, address_key.startswith('address'), (True, False, True, False))
 
         return self.markup(actions, schema)
 
@@ -188,6 +182,29 @@ class AddRouteInlineMarkup(InlineMarkupConstructor):
 
         return self.markup(actions, schema)
 
+    def __add_navigation_buttons(self, actions, schema, next_condition, display: Tuple[bool, bool, bool, bool] = (True, False, True, True), scheme_pattern: [] = None):
+        row = 3
+        displayed_buttons_count = 0
+        if display[0]:
+            self._add_back(actions)
+            displayed_buttons_count += 1
+        if display[1]:
+            self._add_skip(actions)
+            displayed_buttons_count += 1
+        if next_condition:
+            if display[2]:
+                self._remove(actions)
+                displayed_buttons_count += 1
+            if display[3]:
+                self._add_next(actions)
+                displayed_buttons_count += 1
+
+        if scheme_pattern:
+            schema += scheme_pattern
+        else:
+            if displayed_buttons_count > 0:
+                schema += refactor_keyboard(row, actions[-displayed_buttons_count:])
+
     def company_name_markup(self, next_condition):
         actions = []
         schema = []
@@ -224,12 +241,14 @@ class AddRouteInlineMarkup(InlineMarkupConstructor):
             self._add_next(actions, schema)
         return self.markup(actions, refactor_keyboard(2, actions))
 
-    def photo_markup(self):
+    def photo_markup(self, next_condition):
         actions = []
         schema = []
 
         self._add_back(actions, schema)
-        return self.markup(actions, schema)
+        if next_condition:
+            self._add_next(actions, schema)
+        return self.markup(actions, refactor_keyboard(2, actions))
 
     def get_juridical_status_markup(self, juridical_status):
         actions = []
@@ -274,10 +293,18 @@ class AddRouteInlineMarkup(InlineMarkupConstructor):
         ]
         return self.markup(actions, refactor_keyboard(1, actions))
 
-    def _remove(self, actions, schema, key=None):
-        schema.append(1)
+    def _remove(self, actions, schema = None, key=None):
+        if schema:
+            schema.append(1)
         actions.append(
             {'text': '🗑 Удалить', 'callback_data': NavMarkupCD(nav_type='REMOVE', key=key).pack()}
+        )
+
+    def _add_skip(self, actions, schema = None):
+        if schema:
+            schema.append(1)
+        actions.append(
+            {'text': 'Пропустить ↩', 'callback_data': NavMarkupCD(nav_type='CONFIRM').pack()}
         )
 
     def _add_accept(self, actions, schema = None):
