@@ -1,3 +1,4 @@
+import asyncio
 from typing import Union, Any, List
 from aiogram import Bot, Dispatcher, Router, types
 from aiogram.dispatcher.event.handler import HandlerType
@@ -5,7 +6,7 @@ from aiogram.dispatcher.fsm.context import FSMContext
 from aiogram.dispatcher.fsm.state import StatesGroup, State
 from aiogram.types import CallbackQuery
 from aiohttp import ClientSession
-from app.handlers.fsm.step_types import MessageStep, CallbackStep
+from app.handlers.fsm.step_types import MessageStep, CallbackStep, UTILITY_MESSAGE_IDS
 from app.utils.update import get_chat_id
 
 
@@ -15,7 +16,7 @@ class FSMPipeline:
     def set_pipeline(self, pipeline: []):
         self.pipeline = pipeline
 
-    async def next(self, ctx: Any, bot: Bot, state: FSMContext):
+    async def next(self, ctx: Any, bot: Bot, state: FSMContext, only_state=False):
         route_len = len(self.pipeline)
         for idx, step_pipeline in enumerate(self.pipeline):
             current_state = await state.get_state()
@@ -28,11 +29,27 @@ class FSMPipeline:
                     next_pipeline = self.pipeline[idx + 1]
                     if isinstance(next_pipeline, FSMPipeline):
                         next_pipeline = next_pipeline.pipeline[0]
-                    await next_pipeline.info_handler(ctx, bot=bot, state=state)
+                    if not only_state:
+                        await next_pipeline.info_handler(ctx, bot=bot, state=state)
                     await state.set_state(next_pipeline.state)
                 else:
                     raise Exception("Cannot move pointer to next state, because you are in last state")
                 return
+
+    async def clean(self, ctx: Any, bot: Bot, state: FSMContext):
+        data = await state.get_data()
+        message_ids = data.get(UTILITY_MESSAGE_IDS, None)
+        if message_ids:
+            tasks = []
+            for id in message_ids:
+                tasks.append(bot.delete_message(get_chat_id(ctx), id))
+            data[UTILITY_MESSAGE_IDS] = []
+            await state.update_data(data)
+            try:
+                await asyncio.gather(*tasks)
+            except:
+                print("Error when deleting message")
+
 
     async def info(self, ctx: Any, bot: Bot, state: FSMContext):
         for idx, step_pipeline in enumerate(self.pipeline):
@@ -60,7 +77,7 @@ class FSMPipeline:
 
         raise Exception(f"State {next_state} was not found in pipeline")
 
-    async def prev(self, ctx: Any, bot: Bot, state: FSMContext):
+    async def prev(self, ctx: Any, bot: Bot, state: FSMContext, only_state=False):
         for idx, step_pipeline in enumerate(self.pipeline):
             current_state = await state.get_state()
             if (isinstance(step_pipeline, FSMPipeline) and any(
@@ -72,7 +89,8 @@ class FSMPipeline:
                     prev_pipeline = self.pipeline[idx - 1]
                     if isinstance(prev_pipeline, FSMPipeline):
                         prev_pipeline = prev_pipeline.pipeline[0]
-                    await prev_pipeline.info_handler(ctx, bot=bot, state=state)
+                    if not only_state:
+                        await prev_pipeline.info_handler(ctx, bot=bot, state=state)
                     await state.set_state(prev_pipeline.state)
                 else:
                     raise Exception("Cannot move pointer to prev state, because you are in first state")

@@ -28,6 +28,5 @@ class AlchemyMiddleware(BaseMiddleware):
         data: Dict[str, Any],
     ) -> Any:
         async with self.async_session() as session:
-            async with session.begin():
-                data["session"] = session
-                await handler(event, data)
+            data["alchemy_session"] = session
+            await handler(event, data)

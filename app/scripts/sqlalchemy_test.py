@@ -1,13 +1,18 @@
 import asyncio
+import pprint
 
-from sqlalchemy import create_engine, ForeignKey, insert, DateTime, func
+import sqlalchemy
+from sqlalchemy import create_engine, ForeignKey, insert, DateTime, func, update
 from sqlalchemy import Table, Column, Integer, String
 from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship, selectinload, joinedload
 from sqlalchemy.future import select
 # alembic revision --autogenerate -m "Create user model"
 # alembic upgrade heads
+from app.models.sql.enums import TripStatus
+from app.models.sql.location import Location
+from app.models.sql.service import Trip
 
 metadata_obj = MetaData()
 engine = create_engine("postgresql://admin_db:16zomole@localhost:5432/travelty.test", echo=True, future=True)
@@ -47,47 +52,10 @@ class Address(Base):
     user = relationship("User", back_populates="addresses")
 
 
-# engine = create_engine("postgresql://admin_db:16zomole@localhost:5432/travelty.test", echo=True, future=True)
-# Base.metadata.create_all(bind=engine)
-
-# stmt = (
-#     insert(User).
-#     values(username="Valentin")
-# )
-#
-users = [
-    User(username="Valentin")
-]
-#
-# Session = sessionmaker(bind=engine)
-# session = Session()
-
-
-# def create_users():
-#     for user in users:
-#         session.add(user)
-#     session.commit()
-
-# create_users()
-
-# user_records = session.query(User).all()
-#
-# for user in user_records:
-#     print(f"USER: {user}")
-
-
 async def async_main():
-    addresses = [
-        Address(email_address="some@mail.ru", user_id=8)
-    ]
-
     engine = create_async_engine(
         "postgresql+asyncpg://admin_db:16zomole@localhost:5432/travelty.test", echo=True,
     )
-
-    # async with engine.begin() as conn:
-    #     await conn.run_sync(Base.metadata.drop_all)
-    #     await conn.run_sync(Base.metadata.create_all)
 
     async_session = sessionmaker(
         engine, expire_on_commit=False, class_=AsyncSession
@@ -95,17 +63,31 @@ async def async_main():
 
     async with async_session() as session:
         async with session.begin():
-            # session.add_all(addresses)
+            stmt = (
+                update(Trip)
+                    .returning(Trip)
+                    .where(Trip.id == 9)
+                    .values(trip_status=TripStatus.Published)
+            )
 
-         user_records = await session.execute(select(User))
+            s_query = select(Trip)\
+                .from_statement(stmt) \
+                .options(joinedload(Trip.arrival_location), selectinload(Trip.departure_location))
 
-        for user in user_records.scalars():
-            print(f"USER: {user}")
-        # await session.run_sync(fetch_and_update_objects)
+            result = await session.execute(s_query)
+            s_res = result.scalar()
 
-        await session.commit()
+            dd = s_res.__dict__
 
+            for r in s_res:
+                for al in r.arrival_location:
+                    print(al)
+            pprint.pprint(s_res)
 
+            result = await session.execute(orm_stmt)
+            m = result.scalar()
+
+            pprint.pprint(m)
 
     await engine.dispose()
 

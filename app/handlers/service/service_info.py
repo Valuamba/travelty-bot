@@ -1,126 +1,182 @@
+import datetime
+import os
 from typing import Any
 from aiogram import Bot
 from aiogram.dispatcher.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, InputMediaPhoto, BufferedInputFile, InputFile, FSInputFile
 from geopy import Nominatim
 
+from app.config import Config
+from app.handlers.fsm.fsm_utility import step_info, StepInfoType
+from app.handlers.fsm.step_types import UTILITY_MESSAGE_IDS, MAIN_STEP_MESSAGE_ID
+from app.handlers.service.helpers.constants import Fields
+from app.handlers.service.helpers.departure_date import get_departure_date_values
+from app.handlers.service.helpers.trip_mapper import map_data_to_trip_str, map_trip_to_str
 from app.keyboards.private.add_route import AddRouteInlineMarkup, RouteReplyMarkup
 from app.keyboards.simple_calendar import SimpleCalendar
-from app.models.sql.enums import JuridicalStatus
+from app.models.sql.enums import JuridicalStatus, ServiceTypeLocals, PaymentTypeLocales, TripStatus
+from app.models.sql.service import Trip
 from app.utils.update import get_chat_id
 
 
-async def departure_town_info(ctx: Any, bot: Bot, state: FSMContext):
-    text = "Введите город отправления"
-    await send_info(ctx, bot, text=text)
-
-
-async def arrival_town_info(ctx: Any, bot: Bot, state: FSMContext):
-    text = "Введите город прибытия"
-    await send_info(ctx, bot, text=text)
-
-
-async def confirm_arrival_town_info(ctx: Any, bot: Bot, state: FSMContext):
-    data = await state.get_data()
-    address = data['arrival_address']
-    text = f"Введенная вами локация: %s" % address['display_name']
-    await send_info(ctx, bot, text=text,
-                           reply_markup=AddRouteInlineMarkup().get_confirm_town_markup())
-
-
-async def confirm_departure_town_info(ctx: Any, bot: Bot, state: FSMContext):
-    data = await state.get_data()
-    address = data['departure_address']
-    text = f"Введенная вами локация: %s" % address['display_name']
-    await send_info(ctx, bot, text=text,
-                           reply_markup=AddRouteInlineMarkup().get_confirm_town_markup())
-
-
 async def juridical_status_info(ctx: Any, bot: Bot, state: FSMContext):
-    text = f"Выберите ваш юридический статус:"
-    await send_info(ctx, bot, text=text,
-                           reply_markup=AddRouteInlineMarkup().get_juridical_status_markup()
-                           )
+    juridical_status = (await state.get_data()).get(Fields.JURIDICAL_STATUS, None)
+    text = f"👨‍⚖ Выберите ваш юридический статус:"
+    await step_info(ctx, state, bot, text=text,
+                    reply_markup=AddRouteInlineMarkup().get_juridical_status_markup(juridical_status))
 
 
 async def company_name_info(ctx: Any, bot: Bot, state: FSMContext):
-    text = f"Введите наименование ИП:"
-    await send_info(ctx, bot, text=text)
+    company_name = (await state.get_data()).get(Fields.COMPANY_NAME, None)
+    conditon = company_name is not None
+    text = f"🌐 Введите наименование ИП:"
+
+    if conditon:
+        text += f"\n<b>Введенное наименование:</b> {company_name}"
+
+    help = "🔎 Введенное вами наименование будет опубликовано вместе с анкетой."
+    await step_info(ctx, state, bot, text=_resolve_text(text, help),
+                    reply_markup=AddRouteInlineMarkup().company_name_markup(conditon))
 
 
 async def contact_name_info(ctx: Any, bot: Bot, state: FSMContext):
-    text = f"Введите контактное имя:"
-    await send_info(ctx, bot, text=text)
+    company_name = (await state.get_data()).get(Fields.CONTACT_NAME, None)
+    conditon = company_name is not None
+    text = f"🤳 Введите имя контактного лица:"
+    if conditon:
+        text += f"\n<b>Введенное контактное лицо:</b> {company_name}"
+    help = "🔎 Введенное вами имя будет опубликовано вместе с анкетой."
+    await step_info(ctx, state, bot, text=_resolve_text(text, help),
+                    reply_markup=AddRouteInlineMarkup().contact_name_markup(conditon))
 
 
 async def service_info(ctx: Any, bot: Bot, state: FSMContext):
     services = (await state.get_data()).get('services', [])
-    text = f"Выберите одну или несколько предоставляемых услуг:"
-    await send_info(ctx, bot, text=text,
-                    reply_markup=AddRouteInlineMarkup().get_service_markup(services)
-                    )
+    text = f"📣 Выберите одну или несколько оказываемых вами услуг:"
+    await step_info(ctx, state, bot, text=text,
+                    reply_markup=AddRouteInlineMarkup().get_service_markup(services))
 
 
 async def payment_type_info(ctx: Any, bot: Bot, state: FSMContext):
-    text = f"Выберите тип вознаграждения:"
-    await send_info(ctx, bot, text=text,
-                    reply_markup=AddRouteInlineMarkup().get_payment_markup()
-                    )
+    payment_type = (await state.get_data()).get(Fields.PAYMENT_TYPE, None)
+    text = f"🧮 Выберите тип вознаграждения:"
+    await step_info(ctx, state, bot, text=text,
+                    reply_markup=AddRouteInlineMarkup().get_payment_markup(payment_type), update_type=CallbackQuery)
+
+
+async def pick_route_point(ctx: Any, bot: Bot, state: FSMContext):
+    data = await state.get_data()
+    data.setdefault('address_points', ['departure_address', 'arrival_address'])
+    text = f"🛣 Заполните пункт отправления и пункт прибытия:"
+    await step_info(ctx, state, bot, text=text,
+                    reply_markup=AddRouteInlineMarkup().get_pick_address_markup(data))
+    await state.update_data(data)
 
 
 async def pick_date_info(ctx: Any, bot: Bot, state: FSMContext):
     data = await state.get_data()
-    text = f"Выберите 1-3 даты, в которые вы будете совершать поездку/поездки:"
-    await send_info(ctx, bot, text=text,
-                    reply_markup=AddRouteInlineMarkup().get_pick_date_markup(data)
-                    )
+    text = f"📆 Укажите 1-3 даты, в которые вы будете совершать поездку(ки) по заданному маршруту:"
+    await step_info(ctx, state, bot, text=text,
+                    reply_markup=AddRouteInlineMarkup().get_pick_date_markup(data))
+
+
+async def address_info(ctx: Any, bot: Bot, state: FSMContext):
+    data = await state.get_data()
+    address_key = data['address_key']
+    text = "Введите город/населенный пункт/деревню/страну."
+    address = data.get(address_key, None)
+    if address:
+        text += f"\n\n<b>Введенный ранее адрес:</b> {address['display_name']}"
+    help = "⚠️Для более точного поиска локации введите полный адрес, например: 'Брест, Беларусь'"
+    await step_info(ctx, state, bot, text=_resolve_text(text, help),
+                    reply_markup=AddRouteInlineMarkup().get_address_markup(address_key), update_type=CallbackQuery)
+
+
+async def confirm_address_info(ctx: Any, bot: Bot, state: FSMContext):
+    data = await state.get_data()
+    address = data['current_address']
+    text = f"📍 Введенная вами локация: %s" % address['display_name']
+    await step_info(ctx, state, bot, text=text,
+                    reply_markup=AddRouteInlineMarkup().get_confirm_town_markup(), step_info_type=StepInfoType.Utility)
 
 
 async def select_date_info(ctx: Any, bot: Bot, state: FSMContext):
-    text = f"Выберите дату:"
-    await send_info(ctx, bot, text=text,
-                    reply_markup=await SimpleCalendar().start_calendar(bot, state)
-                    )
+    text = f"🗓 Выберите дату:"
+    await step_info(ctx, state, bot, text=text,
+                    reply_markup=await SimpleCalendar().start_calendar(bot, state), update_type=CallbackQuery)
 
 
 async def commentary_info(ctx: Any, bot: Bot, state: FSMContext):
-    text = "Оставьте дополнительный комментарий (макс. 150 символов):"
-    await send_info(ctx, bot, text=text)
+    text = "📎 Оставьте дополнительный комментарий.:"
+    help = "⚠ Максимально допустимое количество символо - 150."
+    await step_info(ctx, state, bot, text=_resolve_text(text, help),
+                    reply_markup=AddRouteInlineMarkup().commentary_markup(), update_type=CallbackQuery)
 
 
 async def photo_info(ctx: Any, bot: Bot, state: FSMContext):
-    text = "Прикрепите фотографию вашего авто, настоятельно рекомендуем сркывать номер автомобиля, в целях безопасности."
-    await send_info(ctx, bot, text=text)
+    text = "📸 Прикрепите фотографию вашего авто."
+    help = '❗ Рекомендуем не показывать номер автомобиля.'
+    await step_info(ctx, state, bot, text=_resolve_text(text, help),
+                    reply_markup=AddRouteInlineMarkup().photo_markup(), update_type=CallbackQuery)
 
 
 async def phone_number_info(ctx: Any, bot: Bot, state: FSMContext):
-    text = 'Введите номер телефона или нажмите на кнопку ниже'
-    await send_info(ctx, bot, text=text,
-                           reply_markup=RouteReplyMarkup().get_phone_number_keyboard()
-                           )
+    phone_number = (await state.get_data()).get(Fields.PHONE_NUMBER, None)
+    condition = phone_number is not None
+    text = '☎️ Введите номер телефона вручную или нажмите на кнопку ниже.'
+    if condition:
+        text += f"\n<b>Введенный номер телефона:</b> {phone_number}"
+    help = '🔎 Совет: Нажмите на кнопку ниже или введите вручную, например +375 29 821 5478.'
+    await step_info(ctx, state, bot, text=text, reply_markup=AddRouteInlineMarkup().phone_number_markup(condition), update_type=CallbackQuery)
+    await step_info(ctx, state, bot, text=help, reply_markup=RouteReplyMarkup().get_phone_number_keyboard(),
+                    step_info_type=StepInfoType.Utility, update_type=Message)
 
-async def accept_result(ctx: Any, bot: Bot, state: FSMContext):
+
+async def accept_result_info(ctx: Any, bot: Bot, state: FSMContext):
     data = await state.get_data()
+    caption = map_data_to_trip_str(data)
+    file_path = os.path.join(Config.MEDIA_DIRECTORY_PATH, data['photo_path'])
+    await bot.send_photo(chat_id=get_chat_id(ctx),
+                         photo=FSInputFile(path=file_path, filename="img"),
+                         caption=caption,
+                         reply_markup=AddRouteInlineMarkup().get_accept_route_markup())
 
-    text = \
-        f"<b>Комментарий: </b>{data['commentary']}" + \
-        f"<b>Адрес отправления: </b>{data['departure_address']}" + \
-        f"<b>Адрес прибытия: </b>{data['arrival_address']}" + \
+
+async def send_route_on_moderation(ctx, trip_id, bot: Bot, state: FSMContext):
+    data = await state.get_data()
+    caption = map_data_to_trip_str(data)
+    file_path = os.path.join(Config.MEDIA_DIRECTORY_PATH, data['photo_path'])
+    await bot.edit_message_reply_markup(chat_id=get_chat_id(ctx), message_id=ctx.message.message_id)
+    await bot.send_message(chat_id=get_chat_id(ctx),
+                           reply_to_message_id=ctx.message.message_id,
+                           text="🔎 Информация о вашем маршурте была отправлена на модерацию. Обычно это занимает 15 мин.")
+    await bot.send_photo(chat_id=Config.ADMIN_CHAT,
+                           photo=FSInputFile(path=file_path, filename="img"),
+                           caption=caption, reply_markup=AddRouteInlineMarkup().get_moderator_markup(get_chat_id(ctx), trip_id, ctx.message.message_id))
 
 
-    juridical_status = data['juridical_status']
-    if juridical_status == JuridicalStatus.IndividualEntrepreneur:
-        text += "<b>Наименование компании: </b>{data['company_name']}"
-    elif juridical_status == JuridicalStatus.Individual:
-        text += f"<b>Контактное лицо: </b>{data['contact_name']}"
+async def send_moderated_info(ctx, trip_status: TripStatus, chat_id, message_id, trip: Trip, bot: Bot, state: FSMContext):
+    caption = map_trip_to_str(trip)
+    if trip.caption_path:
+        file_path = os.path.join(Config.MEDIA_DIRECTORY_PATH, trip.caption_path)
+    else:
+        file_path = os.path.join(os.getcwd(), 'assets/no_photo.jpg')
 
-    phone_number = data.get('phone_number', None)
-    if phone_number:
-        text += f"<b>Номер телефона: </b>{phone_number}"
+    if trip_status == TripStatus.Published:
+        moderator_caption = "🔶 Маршрут был опубликован\r\n" + caption
+        user_text = "🔶 Маршрут был опубликован"
+    elif trip_status == TripStatus.Canceled:
+        moderator_caption = "❌ Публикация была отклонена\r\n" + caption
+        user_text = "❌ Публикация маршрута была отклонена"
+    else:
+        raise Exception(f"Wrong Trip status: {trip_status}")
 
-async def send_info(ctx: Any, bot: Bot, text, reply_markup=None):
-    if isinstance(ctx, CallbackQuery):
-        await bot.edit_message_text(chat_id=get_chat_id(ctx), message_id=ctx.message.message_id, text=text,
-                                    reply_markup=reply_markup)
-    elif isinstance(ctx, Message):
-        await bot.send_message(chat_id=get_chat_id(ctx), text=text, reply_markup=reply_markup)
+    await bot.edit_message_caption(chat_id=get_chat_id(ctx), message_id=ctx.message.message_id, caption=moderator_caption)
+    await bot.send_message(chat_id=chat_id, reply_to_message_id=message_id, text=user_text)
+    await bot.send_photo(chat_id=Config.TRAVELTY_COM_CHANNEL,
+                         photo=FSInputFile(path=file_path, filename="img"),
+                         caption=caption)
+
+
+def _resolve_text(info: str, help: str):
+    return info + '\n\n' + f'<i>{help}</i>'

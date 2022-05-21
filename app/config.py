@@ -24,6 +24,8 @@ class Config(NamedTuple):
     MONGODB_HOSTNAME = __env.str('MONGODB_HOSTNAME')
     MONGODB_PORT = __env.str('MONGODB_PORT')
     MONGODB_URI = 'mongodb://'
+    ADMIN_CHAT = __env.str('ADMIN_CHAT')
+    TRAVELTY_COM_CHANNEL = __env.str('TRAVELTY_COM_CHANNEL')
 
     if MONGODB_USERNAME and MONGODB_PASSWORD:
         MONGODB_URI += f"{MONGODB_USERNAME}:{MONGODB_PASSWORD}@"

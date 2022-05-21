@@ -20,3 +20,12 @@ def get_departure_date_ids(data: dict):
 def get_departure_date_values(data: dict):
     ids = get_departure_date_ids(data)
     return [datetime.strptime(data[DEPARTURE_DATE_KEY + str(id)], '%Y-%m-%d').date() for id in ids if data[DEPARTURE_DATE_KEY + str(id)]]
+
+
+def dates_to_str_array(dates: []):
+    return [datetime.strptime(date, '%Y-%m-%d').date() for date in dates]
+
+
+def get_departure_date_values_str(data: dict):
+    ids = get_departure_date_ids(data)
+    return [data[DEPARTURE_DATE_KEY + str(id)] for id in ids if data[DEPARTURE_DATE_KEY + str(id)]]

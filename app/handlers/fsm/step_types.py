@@ -5,6 +5,8 @@ from aiogram.dispatcher.fsm.context import FSMContext
 from aiogram.dispatcher.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery
 
+UTILITY_MESSAGE_IDS = "utility_message_ids"
+MAIN_STEP_MESSAGE_ID = "main_step_message_id"
 
 class MessageStep:
     def __init__(self,
@@ -12,7 +14,7 @@ class MessageStep:
                  handler: HandlerType,
                  info_handler: HandlerType,
                  reply_navigation_handlers = [],
-                 inline_navigation_handler: HandlerType = [],
+                 inline_navigation_handler = [],
                  content_types: types.ContentType = types.ContentType.TEXT):
         self.state = state
         self.handler = handler

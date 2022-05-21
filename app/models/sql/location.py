@@ -7,13 +7,16 @@ class Location(TimeBaseModelMixin):
     __tablename__ = "location"
 
     id = Column('id', Integer, primary_key=True)
-    iso = Column('iso', String, unique=False, nullable=False)
-    town = Column('town', String, unique=False, nullable=False)
-    county = Column('county', String, unique=False, nullable=False)
+    place_id = Column('place_id', Integer, unique=True, nullable=False)
+    lat = Column('lat', String, unique=False, nullable=False)
+    lon = Column('lon', String, unique=False, nullable=False)
     country = Column('country', String, unique=False, nullable=False)
-    state = Column('state', String, unique=False, nullable=False)
-    country_code = Column('country_code', String, unique=False, nullable=False)
-    postcode = Column('postcode', Integer, unique=False, nullable=False)
+    place = Column('place', String, unique=False, nullable=False)
+    display_name = Column('display_name', String, unique=False, nullable=False)
 
-    service_id = Column(Integer, ForeignKey('service.id'))
-    service = relationship("User", back_populates="addresses")
+    # departure_location_id = Column(Integer, ForeignKey('Trip.id'))
+    # arrival_location_id = Column(Integer, ForeignKey('Trip.id'))
+
+    # service_id = Column(Integer, ForeignKey('service.id'))
+    # departure_service = relationship("Trip", back_populates="addresses")
+    # arrival_service = relationship("Trip", back_populates="addresses")

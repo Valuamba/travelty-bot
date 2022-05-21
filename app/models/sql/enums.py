@@ -21,23 +21,30 @@ class JuridicalStatus(IntEnum):
     Individual = 2
 
 
+class TripStatus(IntEnum):
+    Outdated = 1,
+    OnModeration = 2,
+    Published = 3,
+    Canceled = 4
+
+
 JuridicalStatusLocals = {
-    JuridicalStatus.Individual: "Физическое лицо",
-    JuridicalStatus.IndividualEntrepreneur: "ИП (Индивидуальный предприниматель)"
+    JuridicalStatus.Individual: "👤 Физическое лицо",
+    JuridicalStatus.IndividualEntrepreneur: "👔 ИП"
 }
 
 ServiceTypeLocals = {
-    ServiceType.Passengers: 'Транфсфер пассажиров',
-    ServiceType.Pets: 'Транфсфер животных',
-    ServiceType.Documents: 'Передача документов',
-    ServiceType.Package: 'Передача посылки',
-    ServiceType.LargeItems: 'Перевоз крупногабаритных предметов',
-    ServiceType.ApartmentRemovals: 'Квартирный переезд',
+    ServiceType.Passengers: '💃🏻 Трансфер пассажиров',
+    ServiceType.Pets: '🐕‍🦺 Трансфер животных',
+    ServiceType.Documents: '📥 Передача документов',
+    ServiceType.Package: '📦 Передача посылок',
+    ServiceType.LargeItems: '🛏 Перевоз крупногабаритных предметов',
+    ServiceType.ApartmentRemovals: '🏡 Квартирный переезд',
 }
 
 
 PaymentTypeLocales = {
-    PaymentType.WithoutPayment: 'Без оплаты',
-    PaymentType.WithPayment: 'С оплатой',
-    PaymentType.NotDecided: 'Не определился'
+    PaymentType.WithoutPayment: '🤝 Без оплаты',
+    PaymentType.WithPayment: '💶 С оплатой',
+    PaymentType.NotDecided: '🤔 Не определился'
 }
