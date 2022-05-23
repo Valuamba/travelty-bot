@@ -56,7 +56,7 @@ class SimpleCalendar:
         utility_buttons = []
         utility_buttons.append(
             InlineKeyboardButton(
-                text=f"Назад",
+                text=f"⬅️Назад",
                 callback_data=SimpleCalendarCD(act="BACK", year=year, month=month, day=day).pack()
             )
         )

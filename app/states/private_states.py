@@ -17,6 +17,6 @@ class RoutePrivate(StatesGroup):
     PICK_DATE_ID = State()
     SELECT_DATE = State()
     PHOTO = State()
-    PHOTO_NUMBER = State()
+    PHONE_NUMBER = State()
     ACCEPT_ROUTE = State()
 

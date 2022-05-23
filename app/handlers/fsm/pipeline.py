@@ -7,7 +7,7 @@ from aiogram.dispatcher.fsm.context import FSMContext
 from aiogram.dispatcher.fsm.state import StatesGroup, State
 from aiogram.types import CallbackQuery
 from aiohttp import ClientSession
-from app.handlers.fsm.step_types import MessageStep, CallbackStep, UTILITY_MESSAGE_IDS
+from app.handlers.fsm.step_types import MessageStep, CallbackStep, UTILITY_MESSAGE_IDS, MAIN_STEP_MESSAGE_ID
 from app.utils.update import get_chat_id
 
 
@@ -42,6 +42,14 @@ class FSMPipeline:
                 else:
                     raise Exception("Cannot move pointer to next state, because you are in last state")
                 return
+
+    async def clean_main(self, ctx: Any, bot: Bot, state: FSMContext):
+        data = await state.get_data()
+        main_message_id = data.get(MAIN_STEP_MESSAGE_ID, None)
+        if main_message_id:
+            await bot.delete_message(get_chat_id(ctx), main_message_id)
+        data[MAIN_STEP_MESSAGE_ID] = None
+        await state.update_data(data)
 
     async def clean(self, ctx: Any, bot: Bot, state: FSMContext):
         data = await state.get_data()

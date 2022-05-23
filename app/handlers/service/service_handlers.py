@@ -18,15 +18,15 @@ from app.handlers.fsm import step_types
 from app.handlers.fsm.fsm_utility import step_info, StepInfoType
 from app.handlers.fsm.pipeline import FSMPipeline
 from app.handlers.fsm.step_types import UTILITY_MESSAGE_IDS
-from app.handlers.service.helpers.constants import Fields
+from app.handlers.service.helpers.constants import Fields, MapRouteStateToField
 from app.handlers.service.helpers.geo import find_place
 from app.handlers.service.service_info import \
     juridical_status_info, contact_name_info, company_name_info, service_info, \
     payment_type_info, pick_date_info, select_date_info, commentary_info, photo_info, phone_number_info, \
-    accept_result_info, send_route_on_moderation, pick_route_point, address_info, confirm_address_info
+    accept_result_info, send_route_on_moderation, pick_route_point, address_info, confirm_address_info, form_info
 from app.handlers.test import DataValueFilter
 from app.keyboards.private.add_route import AddRouteInlineMarkup, ConfirmTownCD, JuridicalStatusCD, ServiceTypeCD, \
-    NavMarkupCD, PaymentCD, PickDateCD, PickAddressCD
+    NavMarkupCD, PaymentCD, PickDateCD, PickAddressCD, FormCD
 from app.keyboards.simple_calendar import SimpleCalendar, SimpleCalendarCD
 from app.models.sql.enums import JuridicalStatus
 from app.services.repository import add_new_trip
@@ -63,15 +63,15 @@ async def address_handler(msg: Message, bot: Bot, state: FSMContext):
 async def address_confirm_handler(msg: CallbackQuery, callback_data: ConfirmTownCD, bot: Bot, state: FSMContext):
     if callback_data.status == 'yes':
         data = await state.get_data()
-        if await _valid_address(msg, bot, state, data, data['current_address']):
-            address_key = data['address_key']
-            data[address_key] = data['current_address']
-            await state.update_data(data)
-            await address_pipeline.clean(msg, bot, state)
-            await address_pipeline.move_to(msg, bot, state, RoutePrivate.PICK_ADDRESS)
-        else:
-            await address_pipeline.prev(msg, bot, state, only_state=True)
-            await state.update_data(data)
+        # if await _valid_address(msg, bot, state, data, data['current_address']):
+        address_key = data['address_key']
+        data[address_key] = data['current_address']
+        await state.update_data(data)
+        await address_pipeline.clean(msg, bot, state)
+        await address_pipeline.move_to(msg, bot, state, RoutePrivate.PICK_ADDRESS)
+        # else:
+        #     await address_pipeline.prev(msg, bot, state, only_state=True)
+        #     await state.update_data(data)
     elif callback_data.status == 'no':
         await address_pipeline.clean(msg, bot, state)
         await address_pipeline.prev(msg, bot, state, only_state=True)
@@ -143,7 +143,9 @@ async def commentary_handler(msg: Message, bot: Bot, state: FSMContext):
                         step_info_type=StepInfoType.Utility)
     else:
         data[Fields.COMMENTARY]=msg.text
+        data['ready_to_publish'] = True
         await state.update_data(data)
+        await fsmPipeline.clean_main(msg, bot, state)
         await next(msg, bot, state)
 
 
@@ -205,6 +207,21 @@ async def handle_accept_info(ctx: CallbackQuery, callback_data: NavMarkupCD, bot
                         )
 
 
+async def form_handlers(ctx: CallbackQuery, callback_data: FormCD, bot: Bot, state: FSMContext, alchemy_session):
+    data = await state.get_data()
+    if data.get('ready_to_publish', None) and callback_data == 'PUBLISH':
+        pass
+    elif callback_data.type == 'CHANGE':
+        data['ready_to_publish'] = False
+        await state.update_data(data)
+        await form_info(ctx, bot, state)
+        await fsmPipeline.move_to(ctx, bot, state, fsmPipeline.pipeline[0].state)
+    elif callback_data.type == 'CANCEL':
+        await state.clear()
+        await fsmPipeline.clean(ctx, bot, state)
+        await bot.delete_message(get_chat_id(ctx), message_id=ctx.message.message_id)
+
+
 async def add_proxy_point_handler(ctx: Any, bot: Bot, state: FSMContext):
     data = await state.get_data()
     proxy_points_count = sum(1 for point in data['address_points'] if point.startswith('address'))
@@ -217,11 +234,29 @@ async def accept(ctx: Any, bot: Bot, state: FSMContext):
     await next(ctx, bot, state)
 
 
-async def next(ctx: Any, bot: Bot, state: FSMContext):
-    # if isinstance(ctx, Message):
-    #     ctx.delete_reply_markup()
+async def skip(ctx: Any, bot: Bot, state: FSMContext):
+    if await state.get_state() == RoutePrivate.COMMENTARY.state:
+        data = await state.get_data()
+        data['ready_to_publish'] = True
+        await state.update_data(data)
+        await fsmPipeline.clean_main(ctx, bot, state)
+
     await fsmPipeline.clean(ctx, bot, state)
     await fsmPipeline.next(ctx, bot, state)
+
+
+async def next(ctx: Any, bot: Bot, state: FSMContext):
+    field = MapRouteStateToField.get(await state.get_state(), None)
+    if field:
+        data = await state.get_data()
+        if data.get(field, None):
+            await fsmPipeline.clean(ctx, bot, state)
+            await fsmPipeline.next(ctx, bot, state)
+            await form_info(ctx, bot, state)
+    else:
+        await fsmPipeline.clean(ctx, bot, state)
+        await fsmPipeline.next(ctx, bot, state)
+        await form_info(ctx, bot, state)
 
 
 async def remove_proxy_point(ctx: CallbackQuery, callback_data: NavMarkupCD, bot: Bot, state: FSMContext):
@@ -253,9 +288,24 @@ async def prev(ctx: Any, bot: Bot, state: FSMContext):
         await fsmPipeline.prev(ctx, bot, state)
 
 
+async def remove(ctx: Any, bot: Bot, state: FSMContext):
+    field = MapRouteStateToField[await state.get_state()]
+    data = await state.get_data()
+    data[field] = None
+    await state.update_data(data)
+    await fsmPipeline.clean(ctx, bot, state)
+    await fsmPipeline.info(ctx, bot, state)
+    await form_info(ctx, bot, state)
+
+
 async def start(ctx: Any, bot: Bot, state: FSMContext):
     await state.clear()
-    await state.update_data(user_id=get_user_id(ctx))
+    data = await state.get_data()
+    data['user_id'] = get_user_id(ctx)
+    data['full_name'] = ctx.from_user.full_name
+    data['ready_to_publish'] = False
+    await state.update_data(data)
+    await form_info(ctx, bot, state)
     await fsmPipeline.move_to(ctx, bot, state, fsmPipeline.pipeline[0].state)
 
 
@@ -280,6 +330,8 @@ async def add_utility_message(msg: Message, state, update=False):
 async def add_item_list(state, item, key) -> List[Any]:
     data = await state.get_data()
     array = data.get(key, [])
+    if not array:
+        array = []
     if item in array:
         array.remove(item)
     else:
@@ -292,10 +344,12 @@ def setup(dp: Dispatcher):
     dp.message.register(get_info, commands="help")
 
     skip_reply = ('Пропустить', next)
+    remove_inline = (NavMarkupCD.filter(F.nav_type == "REMOVE"), remove)
     accept_inline = (NavMarkupCD.filter(F.nav_type == "CONFIRM"), next)
     add_proxy_point = (NavMarkupCD.filter(F.nav_type == "PROXY_POINT"), add_proxy_point_handler)
     prev_inline = (NavMarkupCD.filter(F.nav_type == "BACK"), prev)
     next_inline = (NavMarkupCD.filter(F.nav_type == "NEXT"), next)
+    skip_inline = (NavMarkupCD.filter(F.nav_type == "SKIP"), skip)
     remove_proxy = (NavMarkupCD.filter(F.nav_type == "REMOVE"), remove_proxy_point)
 
     address_pipeline.set_pipeline([
@@ -317,19 +371,19 @@ def setup(dp: Dispatcher):
     juridical_status = step_types.CallbackStep(state=RoutePrivate.JURIDICAL_STATUS, handler=juridical_status_handler,
                                 info_handler=juridical_status_info,
                                 filters=[JuridicalStatusCD.filter()],
-                                inline_navigation_handler=[prev_inline, next_inline]
+                                inline_navigation_handler=[prev_inline, next_inline, remove_inline, skip_inline]
                                 )
 
     company_name = step_types.MessageStep(state=RoutePrivate.COMPANY_NAME, handler=company_name_handler,
                                info_handler=company_name_info,
                                 step_filter=DataValueFilter(key=Fields.JURIDICAL_STATUS, value=JuridicalStatus.IndividualEntrepreneur),
-                               inline_navigation_handler=[prev_inline, next_inline]
+                               inline_navigation_handler=[prev_inline, next_inline, remove_inline, skip_inline]
                                )
 
     contact_name = step_types.MessageStep(state=RoutePrivate.CONTACT_NAME, handler=contact_name_handler,
                                           info_handler=contact_name_info,
                                           step_filter=DataValueFilter(key=Fields.JURIDICAL_STATUS, value=JuridicalStatus.Individual),
-                                          inline_navigation_handler=[prev_inline, next_inline])
+                                          inline_navigation_handler=[prev_inline, next_inline, remove_inline, skip_inline])
 
     departure_date_pipeline.set_pipeline([
         step_types.CallbackStep(state=RoutePrivate.PICK_DATE_ID, handler=pick_date_handler,
@@ -346,34 +400,34 @@ def setup(dp: Dispatcher):
 
     commentary = step_types.MessageStep(state=RoutePrivate.COMMENTARY, handler=commentary_handler,
                                         info_handler=commentary_info,
-                                        inline_navigation_handler=[prev_inline, next_inline]
+                                        inline_navigation_handler=[prev_inline, next_inline, remove_inline, skip_inline]
                                         )
 
     payment_type = step_types.CallbackStep(state=RoutePrivate.PAYMENT_TYPE, handler=payment_type_handler,
                                            info_handler=payment_type_info,
                                            filters=[PaymentCD.filter()],
-                                           inline_navigation_handler=[prev_inline, next_inline]
+                                           inline_navigation_handler=[prev_inline, next_inline, remove_inline]
                                            )
 
     service_type = step_types.CallbackStep(state=RoutePrivate.SELECT_SERVICE, handler=service_handler,
                                            info_handler=service_info,
                                            filters=[ServiceTypeCD.filter()],
-                                           inline_navigation_handler=[next_inline]
+                                           inline_navigation_handler=[next_inline, remove_inline]
                                            )
 
     photo = step_types.MessageStep(state=RoutePrivate.PHOTO, handler=photo_handler,
                                    info_handler=photo_info,
-                                   inline_navigation_handler=[prev_inline, next_inline])
+                                   inline_navigation_handler=[prev_inline, next_inline, remove_inline, skip_inline])
 
-    phone_number = step_types.MessageStep(state=RoutePrivate.PHOTO_NUMBER, handler=phone_number_handler,
+    phone_number = step_types.MessageStep(state=RoutePrivate.PHONE_NUMBER, handler=phone_number_handler,
                                           info_handler=phone_number_info,
                                           reply_navigation_handlers=[skip_reply],
-                                          inline_navigation_handler=[prev_inline, next_inline]
+                                          inline_navigation_handler=[prev_inline, next_inline, remove_inline, skip_inline]
                                           )
 
-    accept_route = step_types.CallbackStep(state=RoutePrivate.ACCEPT_ROUTE, handler=handle_accept_info,
-                                           info_handler=accept_result_info,
-                                           filters=[NavMarkupCD.filter()],
+    accept_route = step_types.CallbackStep(state=RoutePrivate.ACCEPT_ROUTE, handler=form_handlers,
+                                           info_handler=form_info,
+                                           filters=[FormCD.filter()],
                                           )
 
     fsmPipeline.set_pipeline([

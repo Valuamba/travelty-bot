@@ -1,3 +1,4 @@
+import base64
 import datetime
 import os
 from typing import Any
@@ -16,6 +17,7 @@ from app.keyboards.private.add_route import AddRouteInlineMarkup, RouteReplyMark
 from app.keyboards.simple_calendar import SimpleCalendar
 from app.models.sql.enums import JuridicalStatus, ServiceTypeLocals, PaymentTypeLocales, TripStatus
 from app.models.sql.service import Trip
+from app.utils.route_mapping import map_route_data_to_str
 from app.utils.update import get_chat_id
 
 
@@ -109,7 +111,7 @@ async def select_date_info(ctx: Any, bot: Bot, state: FSMContext):
 async def commentary_info(ctx: Any, bot: Bot, state: FSMContext):
     commentary = (await state.get_data()).get(Fields.COMMENTARY, None)
     condition = commentary is not None
-    text = "📎 Оставьте дополнительный комментарий.:"
+    text = "📎 Оставьте дополнительный комментарий:"
     if condition:
         text += f"\n\nВведенный комментарий: {commentary}"
     help = "⚠ Максимально допустимое количество символов - 150."
@@ -132,10 +134,10 @@ async def phone_number_info(ctx: Any, bot: Bot, state: FSMContext):
     text = '☎️ Введите номер телефона вручную или нажмите на кнопку ниже.'
     if condition:
         text += f"\n\n📝Введенный номер телефона: {phone_number}"
-    help = '🔎 Совет: Нажмите на кнопку ниже или введите вручную, например +375 29 821 5478.'
+    help = '<i>🔎 Совет: нажмите на кнопку ниже или введите вручную, например +375 29 821 5478.</i>'
     await step_info(ctx, state, bot, text=text, reply_markup=AddRouteInlineMarkup().phone_number_markup(condition), update_type=CallbackQuery)
     await step_info(ctx, state, bot, text=help, reply_markup=RouteReplyMarkup().get_phone_number_keyboard(),
-                    step_info_type=StepInfoType.Utility, update_type=Message)
+                    step_info_type=StepInfoType.Utility, update_type=Message, disable_notification=True)
 
 
 async def accept_result_info(ctx: Any, bot: Bot, state: FSMContext):
@@ -146,6 +148,33 @@ async def accept_result_info(ctx: Any, bot: Bot, state: FSMContext):
                          photo=FSInputFile(path=file_path, filename="img"),
                          caption=caption,
                          reply_markup=AddRouteInlineMarkup().get_accept_route_markup())
+
+
+async def form_info(ctx: Any, bot: Bot, state: FSMContext):
+    data = await state.get_data()
+    form_message = data.get('form_message', None)
+    text = map_route_data_to_str(data)
+    photo_path = data.get('photo_path', '')
+    encoded_text = base64.b64encode((text + photo_path + str(data['ready_to_publish'])).encode('utf-8'))
+    if data.get('form_text', None) != encoded_text:
+        await state.update_data(form_text=encoded_text)
+        data["form_text"] = encoded_text
+        if photo_path:
+            file_path = os.path.join(Config.MEDIA_DIRECTORY_PATH, data['photo_path'])
+        else:
+            file_path = os.path.join(os.getcwd(), 'assets/no_photo.jpg')
+        if form_message:
+            media = InputMediaPhoto(media=FSInputFile(path=file_path, filename="img"), caption=text)
+            await bot.edit_message_media(chat_id=get_chat_id(ctx), message_id=form_message, media=media,
+                                         reply_markup=AddRouteInlineMarkup().get_form_markup(data['ready_to_publish']))
+        else:
+            message = await bot.send_photo(chat_id=get_chat_id(ctx),
+                                 photo=FSInputFile(path=file_path, filename="img"),
+                                 caption=text,
+                                 reply_markup=AddRouteInlineMarkup().get_form_markup(data['ready_to_publish'])
+                                 )
+            data['form_message'] = message.message_id
+        await state.update_data(data)
 
 
 async def send_route_on_moderation(ctx, trip_id, bot: Bot, state: FSMContext):

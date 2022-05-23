@@ -45,6 +45,10 @@ class NavMarkupCD(CallbackData, prefix='nav'):
     key: str = None
 
 
+class FormCD(CallbackData, prefix='form'):
+    type: str
+
+
 class ChangeRouteCD(CallbackData, prefix='change_route'):
     field: str
 
@@ -62,29 +66,22 @@ class AddRouteInlineMarkup(InlineMarkupConstructor):
         actions = []
         for service in ServiceType:
             actions.append(
-                {'text': '🔘 ' + ServiceTypeLocals[service] if service in services else ServiceTypeLocals[service],
+                {'text': f'{CHECKBOX_BUTTON} ' + ServiceTypeLocals[service] if services and service in services else ServiceTypeLocals[service],
                  'callback_data': ServiceTypeCD(service_type=service).pack()}
                 )
-
-        schema = [1, 1, 1, 1, 1, 1]
-
-        # if len(services) > 0:
-        #     self._add_next(actions, schema)
-
-        self.__add_navigation_buttons(actions, schema, len(services) > 0, (False, False, True, True))
-        # self._add_back(actions, schema)
+        schema = refactor_keyboard(1, actions)
+        self.__add_navigation_buttons(actions, schema, services and len(services) > 0, (False, False, True, True))
         return self.markup(actions, schema)
 
     def get_payment_markup(self, payment_type):
         actions = []
-        schema = []
         for type in PaymentType:
             if type == payment_type:
                 text = f'{PaymentTypeLocales[type]} {RADIO_BUTTON}'
             else:
                 text = PaymentTypeLocales[type]
             actions.append({'text': text, 'callback_data': PaymentCD(payment_type=type).pack()})
-            schema.append(1)
+        schema = refactor_keyboard(1, actions)
         self.__add_navigation_buttons(actions, schema, payment_type is not None)
         return self.markup(actions, schema)
 
@@ -92,7 +89,6 @@ class AddRouteInlineMarkup(InlineMarkupConstructor):
         actions = []
         schema = []
         self.__add_navigation_buttons(actions, schema, address_key.startswith('address'), (True, False, True, False))
-
         return self.markup(actions, schema)
 
     def get_confirm_town_markup(self):
@@ -171,84 +167,39 @@ class AddRouteInlineMarkup(InlineMarkupConstructor):
                 actions.append({'text': f'📆 Выбрать дату {ind + 1}', 'callback_data': PickDateCD(date_id=ind).pack()})
             schema.append(1)
 
-        utility_actions = []
-        self._add_back(utility_actions)
-        if len(departure_keys_ids) > 0:
-            self._add_next(utility_actions)
-
-        utility_schema = refactor_keyboard(3, utility_actions)
-        actions += utility_actions
-        schema += utility_schema
+        self.__add_navigation_buttons(actions, schema, departure_keys_ids and len(departure_keys_ids) > 0, (True, False, False, True))
 
         return self.markup(actions, schema)
-
-    def __add_navigation_buttons(self, actions, schema, next_condition, display: Tuple[bool, bool, bool, bool] = (True, False, True, True), scheme_pattern: [] = None):
-        row = 3
-        displayed_buttons_count = 0
-        if display[0]:
-            self._add_back(actions)
-            displayed_buttons_count += 1
-        if display[1]:
-            self._add_skip(actions)
-            displayed_buttons_count += 1
-        if next_condition:
-            if display[2]:
-                self._remove(actions)
-                displayed_buttons_count += 1
-            if display[3]:
-                self._add_next(actions)
-                displayed_buttons_count += 1
-
-        if scheme_pattern:
-            schema += scheme_pattern
-        else:
-            if displayed_buttons_count > 0:
-                schema += refactor_keyboard(row, actions[-displayed_buttons_count:])
 
     def company_name_markup(self, next_condition):
         actions = []
         schema = []
-
-        self._add_back(actions, schema)
-        if next_condition:
-            self._add_next(actions, schema)
-        return self.markup(actions, refactor_keyboard(2, actions))
+        self.__add_navigation_buttons(actions, schema, next_condition, (True, True, True, True))
+        return self.markup(actions, schema)
 
     def contact_name_markup(self, next_condition):
         actions = []
         schema = []
-
-        self._add_back(actions, schema)
-        if next_condition:
-            self._add_next(actions, schema)
-        return self.markup(actions, refactor_keyboard(2, actions))
+        self.__add_navigation_buttons(actions, schema, next_condition, (True, True, True, True))
+        return self.markup(actions, schema)
 
     def phone_number_markup(self, next_condition):
         actions = []
         schema = []
-
-        self._add_back(actions, schema)
-        if next_condition:
-            self._add_next(actions, schema)
-        return self.markup(actions, refactor_keyboard(2, actions))
+        self.__add_navigation_buttons(actions, schema, next_condition, (True, True, True, True))
+        return self.markup(actions, schema)
 
     def commentary_markup(self, next_condition):
         actions = []
         schema = []
-
-        self._add_back(actions, schema)
-        if next_condition:
-            self._add_next(actions, schema)
-        return self.markup(actions, refactor_keyboard(2, actions))
+        self.__add_navigation_buttons(actions, schema, next_condition, (True, True, True, True))
+        return self.markup(actions, schema)
 
     def photo_markup(self, next_condition):
         actions = []
         schema = []
-
-        self._add_back(actions, schema)
-        if next_condition:
-            self._add_next(actions, schema)
-        return self.markup(actions, refactor_keyboard(2, actions))
+        self.__add_navigation_buttons(actions, schema, next_condition, (True, True, True, True))
+        return self.markup(actions, schema)
 
     def get_juridical_status_markup(self, juridical_status):
         actions = []
@@ -260,22 +211,26 @@ class AddRouteInlineMarkup(InlineMarkupConstructor):
                 text = f'{JuridicalStatusLocals[e.value]}'
             actions.append({'text': text, 'callback_data': JuridicalStatusCD(status=e.value).pack()})
             schema.append(1)
-
-        self._add_back(actions)
-        if juridical_status:
-            self._add_next(actions)
-            schema += refactor_keyboard(2, actions[-2:])
-        else:
-            schema.append(1)
+        self.__add_navigation_buttons(actions, schema, juridical_status)
         return self.markup(actions, schema)
 
     def get_accept_route_markup(self):
-        actions = [
-            {'text': '🆗 Опубликовать', 'callback_data': NavMarkupCD(nav_type='PUBLISH').pack()},
-            {'text': '🔄 Начать сначала', 'callback_data': NavMarkupCD(nav_type='RESTART').pack()},
-            {'text': '❌ Отмена', 'callback_data': NavMarkupCD(nav_type='CANCEL').pack()},
-        ]
+        actions = []
+        actions.append({'text': '🆗 Опубликовать', 'callback_data': NavMarkupCD(nav_type='PUBLISH').pack()})
+        actions.append({'text': '🔄 Начать сначала', 'callback_data': NavMarkupCD(nav_type='RESTART').pack()})
+        actions.append({'text': '❌ Отмена', 'callback_data': NavMarkupCD(nav_type='CANCEL').pack()})
+
         return self.markup(actions, refactor_keyboard(1, actions))
+
+    def get_form_markup(self, publish: bool = False):
+        actions = []
+        if publish:
+            actions.append({'text': '🆗 Опубликовать', 'callback_data': FormCD(type='PUBLISH').pack()})
+            actions.append({'text': '✒️Изменить', 'callback_data': FormCD(type='CHANGE').pack()})
+        actions.append({'text': '❌ Удалить', 'callback_data': FormCD(type='CANCEL').pack()})
+
+        return self.markup(actions, refactor_keyboard(1, actions))
+
 
     def get_moderator_markup(self, chat_id: int, trip_id: int, message_id: int):
 
@@ -304,7 +259,7 @@ class AddRouteInlineMarkup(InlineMarkupConstructor):
         if schema:
             schema.append(1)
         actions.append(
-            {'text': 'Пропустить ↩', 'callback_data': NavMarkupCD(nav_type='CONFIRM').pack()}
+            {'text': 'Пропустить ↩', 'callback_data': NavMarkupCD(nav_type='SKIP').pack()}
         )
 
     def _add_accept(self, actions, schema = None):
@@ -327,6 +282,30 @@ class AddRouteInlineMarkup(InlineMarkupConstructor):
         actions.append(
             {'text': '⬅️ Назад', 'callback_data': NavMarkupCD(nav_type='BACK').pack()}
         )
+
+    def __add_navigation_buttons(self, actions, schema, next_condition, display: Tuple[bool, bool, bool, bool] = (True, False, True, True), scheme_pattern: [] = None):
+        row = 3
+        displayed_buttons_count = 0
+        if display[0]:
+            self._add_back(actions)
+            displayed_buttons_count += 1
+        if not next_condition:
+            if display[1]:
+                self._add_skip(actions)
+                displayed_buttons_count += 1
+        else:
+            if display[2]:
+                self._remove(actions)
+                displayed_buttons_count += 1
+            if display[3]:
+                self._add_next(actions)
+                displayed_buttons_count += 1
+
+        if scheme_pattern:
+            schema += scheme_pattern
+        else:
+            if displayed_buttons_count > 0:
+                schema += refactor_keyboard(row, actions[-displayed_buttons_count:])
 
 
 class RouteReplyMarkup(ReplyMarkupConstructor):

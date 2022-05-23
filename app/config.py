@@ -26,6 +26,7 @@ class Config(NamedTuple):
     MONGODB_URI = 'mongodb://'
     ADMIN_CHAT = __env.str('ADMIN_CHAT')
     TRAVELTY_COM_CHANNEL = __env.str('TRAVELTY_COM_CHANNEL')
+    TRAVELTY_COM_LINK = __env.str('TRAVELTY_COM_LINK')
 
     if MONGODB_USERNAME and MONGODB_PASSWORD:
         MONGODB_URI += f"{MONGODB_USERNAME}:{MONGODB_PASSWORD}@"

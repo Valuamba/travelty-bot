@@ -6,6 +6,10 @@ class PaymentType(IntEnum):
     WithoutPayment = 2
     NotDecided = 3
 
+    @classmethod
+    def has_value(cls, value):
+        return value in cls._value2member_map_
+
 
 class ServiceType(IntEnum):
     Passengers = 1
@@ -14,6 +18,10 @@ class ServiceType(IntEnum):
     Package = 4
     LargeItems = 5
     ApartmentRemovals = 6
+
+    @classmethod
+    def has_value(cls, value):
+        return value in cls._value2member_map_
 
 
 class JuridicalStatus(IntEnum):
