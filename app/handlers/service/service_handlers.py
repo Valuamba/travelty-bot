@@ -209,17 +209,20 @@ async def handle_accept_info(ctx: CallbackQuery, callback_data: NavMarkupCD, bot
 
 async def form_handlers(ctx: CallbackQuery, callback_data: FormCD, bot: Bot, state: FSMContext, alchemy_session):
     data = await state.get_data()
-    if data.get('ready_to_publish', None) and callback_data == 'PUBLISH':
-        pass
+    if data.get('ready_to_publish', None) and callback_data.type == 'PUBLISH':
+        data = await state.get_data()
+        trip = await add_new_trip(data, alchemy_session)
+        await send_route_on_moderation(ctx, trip.id, bot, state)
     elif callback_data.type == 'CHANGE':
         data['ready_to_publish'] = False
         await state.update_data(data)
         await form_info(ctx, bot, state)
         await fsmPipeline.move_to(ctx, bot, state, fsmPipeline.pipeline[0].state)
     elif callback_data.type == 'CANCEL':
-        await state.clear()
         await fsmPipeline.clean(ctx, bot, state)
+        await fsmPipeline.clean_main(ctx, bot, state)
         await bot.delete_message(get_chat_id(ctx), message_id=ctx.message.message_id)
+        await state.clear()
 
 
 async def add_proxy_point_handler(ctx: Any, bot: Bot, state: FSMContext):
@@ -446,3 +449,4 @@ def setup(dp: Dispatcher):
     fsmPipeline.build(dp)
 
     dp.message.register(handle_wrong_message, RouteFilter())
+    dp.callback_query.register(form_handlers, FormCD.filter())

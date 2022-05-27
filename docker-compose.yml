@@ -18,24 +18,60 @@ services:
     networks:
       - botnet
 
-#  bot:
-#    container_name: bot-template
-#    build:
-#      context: .
+  db:
+    container_name: postgres
+    image: postgres:11-alpine
+    volumes:
+      - postgres_db:/var/lib/postgresql/data
+    env_file: ./app/.env
+    #    command: sh -c "echo ${POSTGRES_USER} ${POSTGRES_PASSWORD} ${POSTGRES_DB}"
 #    restart: always
+    environment:
+      POSTGRES_USER: $POSTGRES_USER
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      POSTGRES_DB: $POSTGRES_DB
+    ports:
+      - "5432:5432"
+    deploy:
+      mode: global
+    networks:
+        - botnet
+
+#  test:
+#    container_name: test
+#    image: nicolaka/netshoot
 #    env_file:
-#      - .env
+#      - ./app/.env
 #    volumes:
 #      - .:/src
 #    environment:
-#      MONGODB_HOSTNAME: $MONGODB_HOSTNAME
+#      - MONGODB_HOSTNAME=mongo
+#      - POSTGRES_HOST=db
 #    networks:
 #      - botnet
 #    depends_on:
 #      - mongo
 
+  bot:
+    container_name: bot-template
+    build:
+      dockerfile: docker_test.dockerfile
+      context: .
+    env_file:
+      - ./app/.env
+    volumes:
+      - .:/src
+    environment:
+      - MONGODB_HOSTNAME=mongo
+      - POSTGRES_HOST=db
+    networks:
+      - botnet
+    depends_on:
+      - mongo
+
 volumes:
   mongo_db:
+  postgres_db:
 
 networks:
   botnet:

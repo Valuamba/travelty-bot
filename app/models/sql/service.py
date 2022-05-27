@@ -13,7 +13,7 @@ class Trip(TimeBaseModelMixin):
 
     id = Column('id', Integer, primary_key=True)
     user_id = Column('user_id', Integer, unique=False, nullable=False)
-    contact_name = Column('contact_name', String, unique=False, nullable=False)
+    contact_name = Column('contact_name', String, unique=False, nullable=True)
     company_name = Column('company_name', String, unique=False, nullable=True)
     commentary = Column('commentary', String, unique=False, nullable=True)
     departure_dates = Column('departure_date', ARRAY(String), unique=False, nullable=False)
@@ -26,9 +26,9 @@ class Trip(TimeBaseModelMixin):
 
     departure_location_id = Column(Integer, ForeignKey('location.id'))
     arrival_location_id = Column(Integer, ForeignKey('location.id'))
-    address_1_id = Column(Integer, ForeignKey('location.id'))
-    address_2_id = Column(Integer, ForeignKey('location.id'))
-    address_3_id = Column(Integer, ForeignKey('location.id'))
+    address_1_id = Column(Integer, ForeignKey('location.id'), nullable=True)
+    address_2_id = Column(Integer, ForeignKey('location.id'), nullable=True)
+    address_3_id = Column(Integer, ForeignKey('location.id'), nullable=True)
 
     departure_location = relationship("Location", foreign_keys=[departure_location_id])
     arrival_location = relationship("Location", foreign_keys=[arrival_location_id])

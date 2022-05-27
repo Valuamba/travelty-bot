@@ -17,7 +17,7 @@ from app.keyboards.private.add_route import AddRouteInlineMarkup, RouteReplyMark
 from app.keyboards.simple_calendar import SimpleCalendar
 from app.models.sql.enums import JuridicalStatus, ServiceTypeLocals, PaymentTypeLocales, TripStatus
 from app.models.sql.service import Trip
-from app.utils.route_mapping import map_route_data_to_str
+from app.utils.route_mapping import map_route_data_to_str, map_route_to_form, map_trip_to_form
 from app.utils.update import get_chat_id
 
 
@@ -154,22 +154,19 @@ async def form_info(ctx: Any, bot: Bot, state: FSMContext):
     data = await state.get_data()
     form_message = data.get('form_message', None)
     text = map_route_data_to_str(data)
-    photo_path = data.get('photo_path', '')
+    photo_path = _get_photo_path(data)
+    print(f'FILE PATH: {photo_path}')
     encoded_text = base64.b64encode((text + photo_path + str(data['ready_to_publish'])).encode('utf-8'))
     if data.get('form_text', None) != encoded_text:
         await state.update_data(form_text=encoded_text)
         data["form_text"] = encoded_text
-        if photo_path:
-            file_path = os.path.join(Config.MEDIA_DIRECTORY_PATH, data['photo_path'])
-        else:
-            file_path = os.path.join(os.getcwd(), 'assets/no_photo.jpg')
         if form_message:
-            media = InputMediaPhoto(media=FSInputFile(path=file_path, filename="img"), caption=text)
+            media = InputMediaPhoto(media=FSInputFile(path=photo_path, filename="img"), caption=text)
             await bot.edit_message_media(chat_id=get_chat_id(ctx), message_id=form_message, media=media,
                                          reply_markup=AddRouteInlineMarkup().get_form_markup(data['ready_to_publish']))
         else:
             message = await bot.send_photo(chat_id=get_chat_id(ctx),
-                                 photo=FSInputFile(path=file_path, filename="img"),
+                                 photo=FSInputFile(path=photo_path, filename="img"),
                                  caption=text,
                                  reply_markup=AddRouteInlineMarkup().get_form_markup(data['ready_to_publish'])
                                  )
@@ -177,21 +174,30 @@ async def form_info(ctx: Any, bot: Bot, state: FSMContext):
         await state.update_data(data)
 
 
+def _get_photo_path(data):
+    photo_path = data.get('photo_path', None)
+    if photo_path:
+        file_path = os.path.join(Config.MEDIA_DIRECTORY_PATH, data['photo_path'])
+    else:
+        file_path = os.path.join(os.getcwd(), 'app/assets/no_photo.jpg')
+    return file_path
+
+
 async def send_route_on_moderation(ctx, trip_id, bot: Bot, state: FSMContext):
     data = await state.get_data()
-    caption = map_data_to_trip_str(data)
-    file_path = os.path.join(Config.MEDIA_DIRECTORY_PATH, data['photo_path'])
-    await bot.edit_message_reply_markup(chat_id=get_chat_id(ctx), message_id=ctx.message.message_id)
+    caption = map_route_to_form(data)
+    photo_path = _get_photo_path(data)
+    await bot.edit_message_caption(chat_id=get_chat_id(ctx), message_id=ctx.message.message_id, caption=caption)
     await bot.send_message(chat_id=get_chat_id(ctx),
                            reply_to_message_id=ctx.message.message_id,
-                           text="🔎 Информация о вашем маршурте была отправлена на модерацию. Обычно это занимает 15 мин.")
+                           text="🔎 Форма была отправлена на модерацию. Обычно, проверка занимает 15 минут.")
     await bot.send_photo(chat_id=Config.ADMIN_CHAT,
-                           photo=FSInputFile(path=file_path, filename="img"),
+                           photo=FSInputFile(path=photo_path, filename="img"),
                            caption=caption, reply_markup=AddRouteInlineMarkup().get_moderator_markup(get_chat_id(ctx), trip_id, ctx.message.message_id))
 
 
 async def send_moderated_info(ctx, trip_status: TripStatus, chat_id, message_id, trip: Trip, bot: Bot, state: FSMContext):
-    caption = map_trip_to_str(trip)
+    caption = map_trip_to_form(trip, ctx.from_user.full_name)
     if trip.caption_path:
         file_path = os.path.join(Config.MEDIA_DIRECTORY_PATH, trip.caption_path)
     else:
@@ -200,6 +206,10 @@ async def send_moderated_info(ctx, trip_status: TripStatus, chat_id, message_id,
     if trip_status == TripStatus.Published:
         moderator_caption = "🔶 Маршрут был опубликован\r\n" + caption
         user_text = "🔶 Маршрут был опубликован"
+        await bot.send_photo(chat_id=Config.TRAVELTY_COM_CHANNEL,
+                             photo=FSInputFile(path=file_path, filename="img"),
+                             caption=caption
+                             )
     elif trip_status == TripStatus.Canceled:
         moderator_caption = "❌ Публикация была отклонена\r\n" + caption
         user_text = "❌ Публикация маршрута была отклонена"
@@ -208,9 +218,6 @@ async def send_moderated_info(ctx, trip_status: TripStatus, chat_id, message_id,
 
     await bot.edit_message_caption(chat_id=get_chat_id(ctx), message_id=ctx.message.message_id, caption=moderator_caption)
     await bot.send_message(chat_id=chat_id, reply_to_message_id=message_id, text=user_text)
-    await bot.send_photo(chat_id=Config.TRAVELTY_COM_CHANNEL,
-                         photo=FSInputFile(path=file_path, filename="img"),
-                         caption=caption)
 
 
 def _resolve_text(info: str, help: str):

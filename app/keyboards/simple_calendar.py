@@ -82,7 +82,7 @@ class SimpleCalendar:
         year: int = datetime.now().year,
         month: int = datetime.now().month,
     ) -> InlineKeyboardMarkup:
-        locale.setlocale(locale.LC_ALL, 'ru_RU')
+        locale.setlocale(locale.LC_ALL, 'ru_RU.UTF-8')
         max_delta_days = 31
         data = await state.get_data()
 
