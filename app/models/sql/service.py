@@ -1,6 +1,6 @@
 from enum import Enum
 
-from sqlalchemy import Column, Integer, String, func, DateTime, ARRAY, ForeignKey
+from sqlalchemy import Column, Integer, String, func, DateTime, ARRAY, ForeignKey, BigInteger
 from sqlalchemy.orm import declarative_base, relationship
 
 from app.models.sql.enums import ServiceType, PaymentType, TripStatus, JuridicalStatus
@@ -12,7 +12,7 @@ class Trip(TimeBaseModelMixin):
     __tablename__ = "trip"
 
     id = Column('id', Integer, primary_key=True)
-    user_id = Column('user_id', Integer, unique=False, nullable=False)
+    user_id = Column('user_id', BigInteger, unique=False, nullable=False)
     contact_name = Column('contact_name', String, unique=False, nullable=True)
     company_name = Column('company_name', String, unique=False, nullable=True)
     commentary = Column('commentary', String, unique=False, nullable=True)

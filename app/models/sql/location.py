@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, func, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, func, DateTime, ForeignKey, BigInteger
 from sqlalchemy.orm import declarative_base, relationship
 from app.models.sql.timebase import TimeBaseModelMixin, Base
 
@@ -7,7 +7,7 @@ class Location(TimeBaseModelMixin):
     __tablename__ = "location"
 
     id = Column('id', Integer, primary_key=True)
-    place_id = Column('place_id', Integer, unique=True, nullable=False)
+    place_id = Column('place_id', BigInteger, unique=True, nullable=False)
     lat = Column('lat', String, unique=False, nullable=False)
     lon = Column('lon', String, unique=False, nullable=False)
     country = Column('country', String, unique=False, nullable=False)

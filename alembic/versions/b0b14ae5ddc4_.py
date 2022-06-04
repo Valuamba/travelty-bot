@@ -1,18 +1,18 @@
 """empty message
 
-Revision ID: 02803c68951a
+Revision ID: b0b14ae5ddc4
 Revises: 
-Create Date: 2022-05-05 20:21:03.503037
+Create Date: 2022-06-04 19:36:48.543147
 
 """
 from alembic import op
 import sqlalchemy as sa
 
-import app.models.sql.types
-from app.models.sql.enums import PaymentType, TripStatus, JuridicalStatus, ServiceType
+from app.models.sql.enums import JuridicalStatus, TripStatus, PaymentType, ServiceType
+from app.models.sql.types import IntEnum
 
 # revision identifiers, used by Alembic.
-revision = '02803c68951a'
+revision = 'b0b14ae5ddc4'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -24,7 +24,7 @@ def upgrade():
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('place_id', sa.Integer(), nullable=False),
+    sa.Column('place_id', sa.BigInteger(), nullable=False),
     sa.Column('lat', sa.String(), nullable=False),
     sa.Column('lon', sa.String(), nullable=False),
     sa.Column('country', sa.String(), nullable=False),
@@ -37,19 +37,25 @@ def upgrade():
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('contact_name', sa.String(), nullable=False),
+    sa.Column('user_id', sa.BigInteger(), nullable=False),
+    sa.Column('contact_name', sa.String(), nullable=True),
     sa.Column('company_name', sa.String(), nullable=True),
     sa.Column('commentary', sa.String(), nullable=True),
     sa.Column('departure_date', sa.ARRAY(sa.String()), nullable=False),
     sa.Column('phone_number', sa.String(length=20), nullable=True),
     sa.Column('caption_path', sa.String(), nullable=True),
-    sa.Column('juridical_status', app.models.sql.types.IntEnum(JuridicalStatus), nullable=False),
-    sa.Column('trip_status', app.models.sql.types.IntEnum(TripStatus), nullable=False),
-    sa.Column('payment_type', app.models.sql.types.IntEnum(PaymentType), nullable=False),
-    sa.Column('services', sa.ARRAY(app.models.sql.types.IntEnum(ServiceType)), nullable=False),
+    sa.Column('juridical_status', IntEnum(JuridicalStatus), nullable=False),
+    sa.Column('trip_status', IntEnum(TripStatus), nullable=False),
+    sa.Column('payment_type', IntEnum(PaymentType), nullable=False),
+    sa.Column('services', sa.ARRAY(IntEnum(ServiceType)), nullable=False),
     sa.Column('departure_location_id', sa.Integer(), nullable=True),
     sa.Column('arrival_location_id', sa.Integer(), nullable=True),
+    sa.Column('address_1_id', sa.Integer(), nullable=True),
+    sa.Column('address_2_id', sa.Integer(), nullable=True),
+    sa.Column('address_3_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['address_1_id'], ['location.id'], ),
+    sa.ForeignKeyConstraint(['address_2_id'], ['location.id'], ),
+    sa.ForeignKeyConstraint(['address_3_id'], ['location.id'], ),
     sa.ForeignKeyConstraint(['arrival_location_id'], ['location.id'], ),
     sa.ForeignKeyConstraint(['departure_location_id'], ['location.id'], ),
     sa.PrimaryKeyConstraint('id'),
