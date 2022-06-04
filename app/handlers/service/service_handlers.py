@@ -4,9 +4,13 @@ import os
 import uuid
 from typing import List, Any, Optional
 
+import aiogram
 import phonenumbers
-from aiogram import Dispatcher, Bot, F
+from CommandNotFound.db.creator import measure
+from aiogram import Dispatcher, Bot, F, MagicFilter
+from aiogram.dispatcher.event.handler import FilterType
 from aiogram.dispatcher.fsm.context import FSMContext
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ReplyKeyboardRemove, \
     ContentType
 from aiohttp import ClientSession
@@ -295,6 +299,11 @@ async def next(ctx: Any, bot: Bot, state: FSMContext):
     current_state = await state.get_state()
     log_handler("next", get_user_id(ctx), current_state)
     field = MapRouteStateToField.get(state, None)
+
+    if current_state == RoutePrivate.COMMENTARY.state:
+        await fsmPipeline.clean_main(ctx, bot, state)
+        await state.update_data(ready_to_publish=True)
+
     if field:
         data = await state.get_data()
         if data.get(field, None):
@@ -413,6 +422,7 @@ def setup(dp: Dispatcher):
                                 inline_navigation_handler=[next_inline, add_proxy_point, prev_inline]
                                 ),
         step_types.MessageStep(state=RoutePrivate.WRITE_ADDRESS, handler=address_handler,
+                               filters=[F.content_type.in_({ContentType.TEXT})],
                                info_handler=address_info,
                                inline_navigation_handler=[return_to_address, remove_proxy]
                                ),
@@ -430,12 +440,14 @@ def setup(dp: Dispatcher):
 
     company_name = step_types.MessageStep(state=RoutePrivate.COMPANY_NAME, handler=company_name_handler,
                                info_handler=company_name_info,
+                                            filters=[F.content_type.in_({ContentType.TEXT})],
                                 step_filter=DataValueFilter(key=Fields.JURIDICAL_STATUS, value=JuridicalStatus.IndividualEntrepreneur),
                                inline_navigation_handler=[prev_inline, next_inline, remove_inline, skip_inline]
                                )
 
     contact_name = step_types.MessageStep(state=RoutePrivate.CONTACT_NAME, handler=contact_name_handler,
                                           info_handler=contact_name_info,
+                                          filters=[F.content_type.in_({ContentType.TEXT})],
                                           step_filter=DataValueFilter(key=Fields.JURIDICAL_STATUS, value=JuridicalStatus.Individual),
                                           inline_navigation_handler=[prev_inline, next_inline, remove_inline, skip_inline])
 
@@ -454,6 +466,7 @@ def setup(dp: Dispatcher):
 
     commentary = step_types.MessageStep(state=RoutePrivate.COMMENTARY, handler=commentary_handler,
                                         info_handler=commentary_info,
+                                        filters=[F.content_type.in_({ContentType.TEXT})],
                                         inline_navigation_handler=[prev_inline, next_inline, remove_inline, skip_inline]
                                         )
 
@@ -471,10 +484,12 @@ def setup(dp: Dispatcher):
 
     photo = step_types.MessageStep(state=RoutePrivate.PHOTO, handler=photo_handler,
                                    info_handler=photo_info,
+                                   filters=[F.content_type.in_({ContentType.PHOTO})],
                                    inline_navigation_handler=[prev_inline, next_inline, remove_inline, skip_inline])
 
     phone_number = step_types.MessageStep(state=RoutePrivate.PHONE_NUMBER, handler=phone_number_handler,
                                           info_handler=phone_number_info,
+                                          filters=[F.content_type.in_({ContentType.TEXT, ContentType.CONTACT})],
                                           reply_navigation_handlers=[skip_reply],
                                           inline_navigation_handler=[prev_inline, next_inline, remove_inline, skip_inline]
                                           )

@@ -16,7 +16,6 @@ async def get_lock(id):
         yield
     if locks[id]._waiters and len(locks[id]._waiters) == 0:
         del locks[id]
-    print(len(locks))
 
 
 class LockMiddleware(BaseMiddleware):

@@ -85,12 +85,14 @@ class AddRouteInlineMarkup(InlineMarkupConstructor):
         self.__add_navigation_buttons(actions, schema, payment_type is not None)
         return self.markup(actions, schema)
 
-    def get_address_markup(self):
+    def get_address_markup(self, address_key):
         actions = [
-            {'text': '⬅️ Назад', 'callback_data': NavMarkupCD(nav_type='BACK_TO_ADDRESS').pack()}
+            {'text': '⬅️ Назад', 'callback_data': NavMarkupCD(nav_type='BACK_TO_ADDRESS').pack()},
         ]
-        schema = [1]
-        return self.markup(actions, schema)
+
+        if address_key.startswith('address'):
+            self._remove(actions, key=address_key)
+        return self.markup(actions, refactor_keyboard(2, actions))
 
     def get_confirm_town_markup(self):
         actions = [

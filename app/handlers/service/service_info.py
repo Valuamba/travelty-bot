@@ -91,7 +91,7 @@ async def address_info(ctx: Any, bot: Bot, state: FSMContext):
         text += f"\n\n📝Введенный ранее адрес: {address['display_name']}"
     help = "⚠️Для более точного поиска локации введите полный адрес, например: 'Брест, Беларусь'"
     await step_info(ctx, state, bot, text=_resolve_text(text, help),
-                    reply_markup=AddRouteInlineMarkup().get_address_markup(), update_type=CallbackQuery)
+                    reply_markup=AddRouteInlineMarkup().get_address_markup(address_key), update_type=CallbackQuery)
 
 
 async def confirm_address_info(ctx: Any, bot: Bot, state: FSMContext):
