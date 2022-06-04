@@ -1,20 +1,14 @@
 import asyncio
-import logging
 import os
 import uuid
 from typing import List, Any, Optional
 
-import aiogram
 import phonenumbers
-from CommandNotFound.db.creator import measure
 from aiogram import Dispatcher, Bot, F, MagicFilter
-from aiogram.dispatcher.event.handler import FilterType
 from aiogram.dispatcher.fsm.context import FSMContext
-from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ReplyKeyboardRemove, \
     ContentType
-from aiohttp import ClientSession
-from geopy import Nominatim
+
 
 from app.config import Config
 from app.filters.route import RouteFilter
