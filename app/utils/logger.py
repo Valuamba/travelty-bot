@@ -24,8 +24,14 @@ class InterceptHandler(logging.Handler):
 
 
 def setup_logger(level: Union[str, int] = "INFO", ignored: List[str] | None = None):
-    logging.basicConfig(filename="logfile.log", filemode="w", level=logging.getLevelName(level))
-    # logging.basicConfig(handlers=[InterceptHandler()], level=logging.getLevelName(level))
+    date_strftime_format = "%d-%b-%y %H:%M:%S"
+    message_format = "%(asctime)s - %(levelname)s - %(message)s"
+
+    logging.basicConfig(
+        handlers=[logging.FileHandler("log.log", mode='w'), InterceptHandler()],
+        datefmt = date_strftime_format,
+        format=message_format,
+        level=logging.getLevelName(level))
     if ignored:
         for ignore in ignored:
             logger.disable(ignore)

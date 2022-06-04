@@ -7,7 +7,7 @@ from app.handlers.service import service_handlers
 def setup_all_handlers(router: Router, admin_router: Router):
     admins.setup(admin_router)
 
-    for module in (private, service):
+    for module in (private, service, errors):
     # for module in (test, ):
         module.setup(router)
     # for module in (private, updates):

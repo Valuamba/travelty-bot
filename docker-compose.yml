@@ -1,6 +1,15 @@
 version: '3.5'
 
 services:
+  tcpdump:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    command: tcpdump -i eth0 -w /data/nginx.pcap
+    volumes:
+      - $PWD/data:/data
+    networks:
+      - botnet
 
   mongo:
     env_file: .env
@@ -38,6 +47,8 @@ services:
     build:
       dockerfile: docker_test.dockerfile
       context: .
+    restart: always
+    command: sh -c "./wait-for.sh mongo:27017 db:5432 -- ./docker-entrypoint.sh"
     env_file:
       - ./app/.env
     volumes:
@@ -48,6 +59,7 @@ services:
     networks:
       - botnet
     depends_on:
+      - db
       - mongo
 
 volumes:

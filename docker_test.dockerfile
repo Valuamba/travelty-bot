@@ -2,11 +2,10 @@ FROM ubuntu:20.04
 
 WORKDIR /srv
 
-RUN apt-get update && apt-get install -y gfortran libopenblas-dev liblapack-dev pip python
+RUN apt-get update && apt-get install -y gfortran libopenblas-dev liblapack-dev pip python netcat
 #RUN apt-get install -y locales && \
 #    sed -i -e 's/#ru_RU ru_RU.UTF-8 UTF-8/ru_RU.UTF-8 UTF-8/' /etc/locale.gen && \
 #    dpkg-reconfigure --frontend=noninteractive locales
-
 
 RUN apt-get update
 RUN apt-get upgrade -y
