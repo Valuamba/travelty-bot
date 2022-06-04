@@ -7,50 +7,31 @@ services:
     container_name: mongo
     image: mongo
     command: mongod --port 27017
-    restart: always
     environment:
-      MONGO_INITDB_ROOT_USERNAME: $MONGODB_USERNAME
-      MONGO_INITDB_ROOT_PASSWORD: $MONGODB_PASSWORD
+      - MONGO_INITDB_DATABASE=$MONGODB_DATABASE
+      - MONGO_INITDB_ROOT_USERNAME=$MONGODB_USERNAME
+      - MONGO_INITDB_ROOT_PASSWORD=$MONGODB_PASSWORD
     volumes:
       - mongo_db:/data/db
     ports:
-      - '27017:27017'
+      - '27017-27019:27017-27019'
     networks:
       - botnet
 
   db:
     container_name: postgres
-    image: postgres:11-alpine
+    image: postgres:13.3
     volumes:
       - postgres_db:/var/lib/postgresql/data
-    env_file: ./app/.env
-    #    command: sh -c "echo ${POSTGRES_USER} ${POSTGRES_PASSWORD} ${POSTGRES_DB}"
-#    restart: always
+    env_file: .env
     environment:
-      POSTGRES_USER: $POSTGRES_USER
-      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
-      POSTGRES_DB: $POSTGRES_DB
+      - POSTGRES_USER=$POSTGRES_USER
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+      - POSTGRES_DB=$POSTGRES_DB
     ports:
-      - "5432:5432"
-    deploy:
-      mode: global
+      - "5435:5432"
     networks:
         - botnet
-
-#  test:
-#    container_name: test
-#    image: nicolaka/netshoot
-#    env_file:
-#      - ./app/.env
-#    volumes:
-#      - .:/src
-#    environment:
-#      - MONGODB_HOSTNAME=mongo
-#      - POSTGRES_HOST=db
-#    networks:
-#      - botnet
-#    depends_on:
-#      - mongo
 
   bot:
     container_name: bot-template

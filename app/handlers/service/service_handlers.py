@@ -31,6 +31,7 @@ from app.keyboards.simple_calendar import SimpleCalendar, SimpleCalendarCD
 from app.models.sql.enums import JuridicalStatus
 from app.services.repository import add_new_trip
 from app.states.private_states import RoutePrivate
+from app.utils.logger import log_handler
 from app.utils.update import get_chat_id, get_user_id
 
 fsmPipeline = FSMPipeline()
@@ -44,6 +45,9 @@ async def pick_route_handler(ctx: CallbackQuery, callback_data: PickAddressCD, b
 
 
 async def address_handler(msg: Message, bot: Bot, state: FSMContext):
+    current_state = await state.get_state()
+    log_handler("address_handler", get_user_id(msg), current_state)
+
     data = await add_utility_message(msg, state, True)
 
     if len(msg.text) == 0:
@@ -61,6 +65,9 @@ async def address_handler(msg: Message, bot: Bot, state: FSMContext):
 
 
 async def address_confirm_handler(msg: CallbackQuery, callback_data: ConfirmTownCD, bot: Bot, state: FSMContext):
+    current_state = await state.get_state()
+    log_handler("address_confirm_handler", get_user_id(msg), current_state)
+
     if callback_data.status == 'yes':
         data = await state.get_data()
         # if await _valid_address(msg, bot, state, data, data['current_address']):
@@ -91,6 +98,9 @@ async def _valid_address(ctx: CallbackQuery, bot: Bot, state: FSMContext, data: 
 
 
 async def company_name_handler(msg: Message, bot: Bot, state: FSMContext):
+    current_state = await state.get_state()
+    log_handler("company_name_handler", get_user_id(msg), current_state)
+
     data = await add_utility_message(msg, state)
     data[Fields.COMPANY_NAME] = msg.text
     await state.update_data(data)
@@ -98,6 +108,9 @@ async def company_name_handler(msg: Message, bot: Bot, state: FSMContext):
 
 
 async def contact_name_handler(msg: Message, bot: Bot, state: FSMContext):
+    current_state = await state.get_state()
+    log_handler("contact_name_handler", get_user_id(msg), current_state)
+
     data = await add_utility_message(msg, state)
     data[Fields.CONTACT_NAME] = msg.text
     await state.update_data(data)
@@ -105,6 +118,9 @@ async def contact_name_handler(msg: Message, bot: Bot, state: FSMContext):
 
 
 async def juridical_status_handler(ctx: CallbackQuery, callback_data: JuridicalStatusCD, bot: Bot, state: FSMContext):
+    current_state = await state.get_state()
+    log_handler("juridical_status_handler", get_user_id(ctx), current_state)
+
     if callback_data.status == JuridicalStatus.IndividualEntrepreneur:
         await state.update_data(**{Fields.JURIDICAL_STATUS: callback_data.status})
         await fsmPipeline.next(ctx, bot, state)
@@ -116,26 +132,41 @@ async def juridical_status_handler(ctx: CallbackQuery, callback_data: JuridicalS
 
 
 async def pick_date_handler(ctx: CallbackQuery, callback_data: PickDateCD, bot: Bot, state: FSMContext):
+    current_state = await state.get_state()
+    log_handler("pick_date_handler", get_user_id(ctx), current_state)
+
     await state.update_data(departure_date_id=callback_data.date_id)
     await departure_date_pipeline.next(ctx, bot, state)
 
 
 async def service_handler(ctx: CallbackQuery, callback_data: ServiceTypeCD, bot: Bot, state: FSMContext):
+    current_state = await state.get_state()
+    log_handler("service_handler", get_user_id(ctx), current_state)
+
     services = await add_item_list(state, callback_data.service_type, 'services')
     await state.update_data(**{Fields.SERVICES: services})
     await fsmPipeline.info(ctx, bot, state)
 
 
 async def select_date_handler(ctx: CallbackQuery, callback_data: SimpleCalendarCD, bot: Bot, state: FSMContext):
+    current_state = await state.get_state()
+    log_handler("select_date_handler", get_user_id(ctx), current_state)
+
     await SimpleCalendar().process_selection(ctx, callback_data, bot, state, departure_date_pipeline)
 
 
 async def payment_type_handler(ctx: CallbackQuery, callback_data: PaymentCD, bot: Bot, state: FSMContext):
+    current_state = await state.get_state()
+    log_handler("payment_type_handler", get_user_id(ctx), current_state)
+
     await state.update_data(**{Fields.PAYMENT_TYPE: callback_data.payment_type})
     await next(ctx, bot, state)
 
 
 async def commentary_handler(msg: Message, bot: Bot, state: FSMContext):
+    current_state = await state.get_state()
+    log_handler("commentary_handler", get_user_id(msg), current_state)
+
     data = await add_utility_message(msg, state, True)
 
     if len(msg.text) > 150:
@@ -150,6 +181,9 @@ async def commentary_handler(msg: Message, bot: Bot, state: FSMContext):
 
 
 async def photo_handler(msg: Message, bot: Bot, state: FSMContext):
+    current_state = await state.get_state()
+    log_handler("photo_handler", get_user_id(msg), current_state)
+
     data = await add_utility_message(msg, state, True)
     if msg.content_type is ContentType.PHOTO:
         file_id = msg.photo[-1].file_id
@@ -175,6 +209,9 @@ async def photo_handler(msg: Message, bot: Bot, state: FSMContext):
 
 
 async def phone_number_handler(msg: Message, bot: Bot, state: FSMContext):
+    current_state = await state.get_state()
+    log_handler("phone_number_handler", get_user_id(msg), current_state)
+
     data = await add_utility_message(msg, state, True)
 
     if msg.content_type is ContentType.TEXT:
@@ -194,6 +231,9 @@ async def phone_number_handler(msg: Message, bot: Bot, state: FSMContext):
 
 
 async def handle_accept_info(ctx: CallbackQuery, callback_data: NavMarkupCD, bot: Bot, state: FSMContext, alchemy_session):
+    current_state = await state.get_state()
+    log_handler("handle_accept_info", get_user_id(ctx), current_state)
+
     if callback_data.nav_type == "PUBLISH":
         data = await state.get_data()
         trip = await add_new_trip(data, alchemy_session)
@@ -208,6 +248,9 @@ async def handle_accept_info(ctx: CallbackQuery, callback_data: NavMarkupCD, bot
 
 
 async def form_handlers(ctx: CallbackQuery, callback_data: FormCD, bot: Bot, state: FSMContext, alchemy_session):
+    current_state = await state.get_state()
+    log_handler("form_handlers", get_user_id(ctx), current_state)
+
     data = await state.get_data()
     if data.get('ready_to_publish', None) and callback_data.type == 'PUBLISH':
         data = await state.get_data()
@@ -249,7 +292,9 @@ async def skip(ctx: Any, bot: Bot, state: FSMContext):
 
 
 async def next(ctx: Any, bot: Bot, state: FSMContext):
-    field = MapRouteStateToField.get(await state.get_state(), None)
+    current_state = await state.get_state()
+    log_handler("next", get_user_id(ctx), current_state)
+    field = MapRouteStateToField.get(state, None)
     if field:
         data = await state.get_data()
         if data.get(field, None):
@@ -283,7 +328,9 @@ async def remove_proxy_point(ctx: CallbackQuery, callback_data: NavMarkupCD, bot
 
 
 async def prev(ctx: Any, bot: Bot, state: FSMContext):
-    if await state.get_state() == RoutePrivate.WRITE_ADDRESS.state:
+    current_state = await state.get_state()
+    log_handler("prev", get_user_id(ctx), current_state)
+    if current_state == RoutePrivate.WRITE_ADDRESS.state:
         await fsmPipeline.clean(ctx, bot, state)
         await address_pipeline.prev(ctx, bot, state)
     else:
@@ -292,6 +339,9 @@ async def prev(ctx: Any, bot: Bot, state: FSMContext):
 
 
 async def remove(ctx: Any, bot: Bot, state: FSMContext):
+    current_state = await state.get_state()
+    log_handler("remove", get_user_id(ctx), current_state)
+
     field = MapRouteStateToField[await state.get_state()]
     data = await state.get_data()
     data[field] = None
@@ -353,6 +403,7 @@ def setup(dp: Dispatcher):
     prev_inline = (NavMarkupCD.filter(F.nav_type == "BACK"), prev)
     next_inline = (NavMarkupCD.filter(F.nav_type == "NEXT"), next)
     skip_inline = (NavMarkupCD.filter(F.nav_type == "SKIP"), skip)
+    return_to_address = (NavMarkupCD.filter(F.nav_type == "BACK_TO_ADDRESS"), prev)
     remove_proxy = (NavMarkupCD.filter(F.nav_type == "REMOVE"), remove_proxy_point)
 
     address_pipeline.set_pipeline([
@@ -363,7 +414,7 @@ def setup(dp: Dispatcher):
                                 ),
         step_types.MessageStep(state=RoutePrivate.WRITE_ADDRESS, handler=address_handler,
                                info_handler=address_info,
-                               inline_navigation_handler=[prev_inline, remove_proxy]
+                               inline_navigation_handler=[return_to_address, remove_proxy]
                                ),
         step_types.CallbackStep(state=RoutePrivate.CONFIRM_ADDRESS, handler=address_confirm_handler,
                                 info_handler=confirm_address_info,
@@ -450,3 +501,4 @@ def setup(dp: Dispatcher):
 
     dp.message.register(handle_wrong_message, RouteFilter())
     dp.callback_query.register(form_handlers, FormCD.filter())
+    # dp.callback_query.register(next)

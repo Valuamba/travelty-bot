@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import List, Union
+from typing import List, Union, Any
 
 from loguru import logger
 
@@ -24,8 +24,17 @@ class InterceptHandler(logging.Handler):
 
 
 def setup_logger(level: Union[str, int] = "INFO", ignored: List[str] | None = None):
-    logging.basicConfig(handlers=[InterceptHandler()], level=logging.getLevelName(level))
+    logging.basicConfig(filename="logfile.log", filemode="w", level=logging.getLevelName(level))
+    # logging.basicConfig(handlers=[InterceptHandler()], level=logging.getLevelName(level))
     if ignored:
         for ignore in ignored:
             logger.disable(ignore)
     logging.info("Logging is successfully configured")
+
+
+def log_handler(handler_name: str, user_id, state: Any):
+    if state:
+        logging.info(f"Start [{handler_name}] handler for user [{user_id}] with state [{state}]")
+    else:
+        logging.info(f"Start [{handler_name}] handler for user [{user_id}]")
+

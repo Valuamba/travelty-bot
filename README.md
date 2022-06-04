@@ -16,3 +16,12 @@ A template for creating bots as quickly as possible. Written on [aiogram](https:
 #### Deployment
 - Rename `.env.sample` to `.env` and replace a token placeholder and owner id with your own one;
 - Start the bot: `sudo docker-compose up`.
+
+
+docker container rm -f $(docker container ps -a -q)
+docker volume rm $(docker volume ls -q)
+docker network rm $(docker network ls -q)
+docker image rm $(docker images -f "dangling=true" -q)
+
+
+docker run -d -p 27017:27017  --name example-mongo  -e MONGODB_INITDB_ROOT_USERNAME=valuamba  -e MONGODB_INITDB_ROOT_PASSWORD=16zomole  mongo:latest

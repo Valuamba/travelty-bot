@@ -1,12 +1,19 @@
 version: '3'
 
 services:
-  db:
+  mongo:
     image: 'mongo'
+#    env_file: .env
     container_name: 'mongo-db'
     environment:
-      - MONGO_INITDB_DATABASE=test-local-db
-      - MONGO_INITDB_USERNAME=admin
-      - MONGO_INITDB_PASSWORD=16zomole
+      - MONGO_INITDB_DATABASE=travelty
+      - MONGO_INITDB_ROOT_USERNAME=valuamba
+      - MONGO_INITDB_ROOT_PASSWORD=16zomole
+#    environment:
+#      - MONGO_INITDB_DATABASE=$MONGODB_DATABASE
+#      - MONGO_INITDB_ROOT_USERNAME=MONGODB_USERNAME
+#      - MONGO_INITDB_ROOT_PASSWORD=$MONGODB_PASSWORD
     ports:
       - '27017-27019:27017-27019'
+    volumes:
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo-js:ro

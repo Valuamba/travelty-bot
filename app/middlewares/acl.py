@@ -31,8 +31,8 @@ class ACLMiddleware(BaseMiddleware):
             if not (chat_db := await ChatModel.find_one(ChatModel.id == chat.id)):
                 chat_db = await ChatModel(id=chat.id, type=chat.type).create()
 
-                if chat.type != 'private':
-                    await notify_new_group(chat, bot)
+                # if chat.type != 'private':
+                #     await notify_new_group(chat, bot)
 
             data["chat"] = chat_db
 
