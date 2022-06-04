@@ -52,7 +52,8 @@ services:
     env_file:
       - ./app/.env
     volumes:
-      - .:/src
+      - media:/media
+      - bot:/srv
     environment:
       - MONGODB_HOSTNAME=mongo
       - POSTGRES_HOST=db
@@ -65,6 +66,8 @@ services:
 volumes:
   mongo_db:
   postgres_db:
+  bot:
+  media:
 
 networks:
   botnet:
