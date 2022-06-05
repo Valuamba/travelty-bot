@@ -44,6 +44,7 @@ services:
     environment:
       - MONGODB_HOSTNAME=mongo
       - POSTGRES_HOST=pg
+      - POSTGRES_PORT=5432
     networks:
       - botnet
     depends_on:
