@@ -1,3 +1,4 @@
+import os.path
 from pathlib import Path
 from typing import NamedTuple
 
@@ -6,7 +7,7 @@ from environs import Env
 
 class Config(NamedTuple):
     __env = Env()
-    __env.read_env()
+    __env.read_env(os.path.join(os.getcwd(), '.env'))
 
     BASE_DIR = Path(__name__).resolve().parent.parent
 
@@ -34,6 +35,10 @@ class Config(NamedTuple):
     ADMIN_CHAT = __env.str('ADMIN_CHAT')
     TRAVELTY_COM_CHANNEL = __env.str('TRAVELTY_COM_CHANNEL')
     TRAVELTY_COM_LINK = __env.str('TRAVELTY_COM_LINK')
+
+    DEFAULT_PHOTO = __env.str('DEFAULT_PHOTO')
+
+    LOG_FILE_PATH = os.path.join(os.getcwd(), 'logs/log.log')
 
     if MONGODB_USERNAME and MONGODB_PASSWORD:
         MONGODB_URI += f"{MONGODB_USERNAME}:{MONGODB_PASSWORD}@"

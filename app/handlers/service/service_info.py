@@ -201,7 +201,7 @@ async def send_moderated_info(ctx, trip_status: TripStatus, chat_id, message_id,
     if trip.caption_path:
         file_path = os.path.join(Config.MEDIA_DIRECTORY_PATH, trip.caption_path)
     else:
-        file_path = os.path.join(os.getcwd(), 'assets/no_photo.jpg')
+        file_path = os.path.join(os.getcwd(), Config.DEFAULT_PHOTO)
 
     if trip_status == TripStatus.Published:
         moderator_caption = "🔶 Маршрут был опубликован\r\n" + caption

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import logging
+import os.path
 from typing import List, Union, Any
 
 from loguru import logger
+
+from app.config import Config
 
 
 class InterceptHandler(logging.Handler):
@@ -24,11 +27,15 @@ class InterceptHandler(logging.Handler):
 
 
 def setup_logger(level: Union[str, int] = "INFO", ignored: List[str] | None = None):
+    log_directory = os.path.dirname(Config.LOG_FILE_PATH)
+    if not os.path.exists(log_directory):
+        os.mkdir(log_directory)
+
     date_strftime_format = "%Y-%m-%d,%H:%M:%S"
     message_format = "%(asctime)s.%(msecs)03d - %(levelname)s - %(message)s"
 
     logging.basicConfig(
-        handlers=[logging.FileHandler("log.log", mode='w'), InterceptHandler()],
+        handlers=[logging.FileHandler(Config.LOG_FILE_PATH, mode='w'), InterceptHandler()],
         datefmt = date_strftime_format,
         format=message_format,
         level=logging.getLevelName(level))

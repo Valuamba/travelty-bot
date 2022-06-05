@@ -1,17 +1,9 @@
 version: '3.5'
 
 services:
-  tcpdump:
-    build:
-      dockerfile: Dockerfile
-      context: .
-    command: tcpdump -i eth0 -w /data/nginx.pcap
-    networks:
-      - botnet
-
   mongo:
     env_file: .env
-    container_name: mongo
+    container_name: travelty-mongo
     image: mongo
     command: mongod --port 27017
     environment:
@@ -25,8 +17,8 @@ services:
     networks:
       - botnet
 
-  db:
-    container_name: postgres
+  pg:
+    container_name: travelty-postgres
     image: postgres:13.3
     volumes:
       - postgres_db:/var/lib/postgresql/data
@@ -41,31 +33,31 @@ services:
         - botnet
 
   bot:
-    container_name: bot-template
+    container_name: travelty-bot
     build:
-      dockerfile: docker_test.dockerfile
+      dockerfile: Dockerfile
       context: .
     restart: always
-    command: sh -c "./wait-for.sh mongo:27017 db:5432 -- ./docker-entrypoint.sh"
-    env_file:
-      - ./app/.env
+    command: sh -c "./scripts/wait-for.sh mongo:27017 db:5432 -- ./scripts/docker-entrypoint.sh"
+    env_file: .env
     volumes:
       - media:/media
-      - bot:/srv
+      - bot_logs:/srv/logs
     environment:
       - MONGODB_HOSTNAME=mongo
       - POSTGRES_HOST=db
     networks:
       - botnet
     depends_on:
-      - db
+      - pg
       - mongo
 
 volumes:
   mongo_db:
   postgres_db:
-  bot:
+  bot_logs:
   media:
+
 
 networks:
   botnet:

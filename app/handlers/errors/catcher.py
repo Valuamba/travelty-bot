@@ -17,7 +17,7 @@ async def errors_handler(update: Update, exception, bot: Bot):
             notify_user = False
     text = "Вызвано необрабатываемое исключение. Администратор был уведомлен об ошибке.\n"
     error = f'Error: {type(exception)}: {exception}'
-    document_path = os.path.join(os.getcwd(), "log.log")
+    document_path = Config.LOG_FILE_PATH
     logging.exception(error)
     await bot.send_document(Config.ADMIN_CHAT,
                             document=FSInputFile(path=document_path, filename="log"),

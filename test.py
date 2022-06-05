@@ -1,1 +1,0 @@
-s = app.models.sql.types.IntEnum()
