@@ -1,6 +1,8 @@
+import os
 import re
 from logging.config import fileConfig
 
+from environs import Env
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
@@ -8,7 +10,6 @@ from alembic import context
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
-from app.config import Config
 
 config = context.config
 
@@ -28,9 +29,17 @@ from app.models.sql.service import Trip
 from app.models.sql import timebase
 target_metadata = timebase.Base.metadata
 
+__env = Env()
+__env.read_env(os.path.join(os.getcwd(), '.env'))
 
-config.set_main_option('sqlalchemy.url', "postgresql://%s:%s@%s:%s/%s" % (Config.POSTGRES_USER, Config.POSTGRES_PASSWORD,
-                                                                              Config.POSTGRES_HOST, Config.POSTGRES_PORT, Config.POSTGRES_DB))
+POSTGRES_USER = __env.str('POSTGRES_USER')
+POSTGRES_PASSWORD = __env.str('POSTGRES_PASSWORD')
+POSTGRES_DB = __env.str('POSTGRES_DB')
+POSTGRES_HOST = __env.str('POSTGRES_HOST')
+POSTGRES_PORT = __env.str('POSTGRES_PORT')
+
+config.set_main_option('sqlalchemy.url', "postgresql://%s:%s@%s:%s/%s" % (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST,
+                                                                     POSTGRES_PORT, POSTGRES_DB))
 
 def run_migrations_offline():
     """Run migrations in 'offline' mode.

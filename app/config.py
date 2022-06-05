@@ -24,7 +24,8 @@ class Config(NamedTuple):
     POSTGRES_HOST = __env.str('POSTGRES_HOST')
     POSTGRES_PORT = __env.str('POSTGRES_PORT')
 
-    POSTGRESQL_CONNECTION = "postgresql+asyncpg://%s:%s@%s:%s/%s" % (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB)
+    POSTGRESQL_CONNECTION = "postgresql+asyncpg://%s:%s@%s:%s/%s" % (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST,
+                                                                     POSTGRES_PORT, POSTGRES_DB)
 
     MONGODB_DATABASE = __env.str('MONGODB_DATABASE')
     MONGODB_USERNAME = __env.str('MONGODB_USERNAME')
