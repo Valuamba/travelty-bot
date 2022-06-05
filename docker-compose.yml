@@ -34,9 +34,7 @@ services:
 
   bot:
     container_name: travelty-bot
-    build:
-      dockerfile: Dockerfile
-      context: .
+    image: travelty-bot
     restart: always
     command: sh -c "./scripts/wait-for.sh mongo:27017 db:5432 -- ./scripts/docker-entrypoint.sh"
     env_file: .env
