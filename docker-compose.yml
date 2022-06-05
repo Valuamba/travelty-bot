@@ -36,7 +36,7 @@ services:
     container_name: travelty-bot
     image: travelty-bot
     restart: always
-    command: sh -c "./scripts/wait-for.sh mongo:27017 db:5432 -- ./scripts/docker-entrypoint.sh"
+    command: sh -c "./scripts/wait-for.sh mongo:27017 pg:5432 -- ./scripts/docker-entrypoint.sh"
     env_file: .env
     volumes:
       - media:/media
