@@ -43,7 +43,7 @@ services:
       - bot_logs:/srv/logs
     environment:
       - MONGODB_HOSTNAME=mongo
-      - POSTGRES_HOST=db
+      - POSTGRES_HOST=pg
     networks:
       - botnet
     depends_on:
