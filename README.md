@@ -9,3 +9,6 @@ docker run -itd -e POSTGRES_USER=admin -e POSTGRES_PASSWORD=16zomole -e POSTGRES
 
 
 docker run -itd -e POSTGRES_USER=s70416zomole -e POSTGRES_PASSWORD=16zomole -e POSTGRES_DB=travelty -p 5435:5432 --name travelty-pg postgres:13.3
+
+
+docker build -t travelty-bot .
