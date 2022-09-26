@@ -5,6 +5,8 @@ from typing import Any, List, Optional
 from aiogram import Bot
 from aiogram.dispatcher.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
+
+from app.handlers.fsm.bot_utility import safe_edit
 from app.handlers.fsm.step_types import UTILITY_MESSAGE_IDS, MAIN_STEP_MESSAGE_ID
 from app.utils.update import get_chat_id
 
@@ -53,13 +55,15 @@ async def step_info(ctx: Any, state: FSMContext, bot: Bot, text, reply_markup=No
 
     async def callback_switch():
         if step_info_type == StepInfoType.Main:
-            await bot.edit_message_text(chat_id=get_chat_id(ctx), message_id=main_step_message, parse_mode='HTML', text=text,
-                                        reply_markup=reply_markup)
+            async with safe_edit(ctx):
+                await bot.edit_message_text(chat_id=get_chat_id(ctx), message_id=main_step_message, parse_mode='HTML', text=text,
+                                            reply_markup=reply_markup)
         elif step_info_type == StepInfoType.Utility:
-            await bot.edit_message_text(chat_id=get_chat_id(ctx), message_id=ctx.message.message_id,
-                                        parse_mode='HTML', text=text,
-                                        reply_markup=reply_markup
-                                        )
+            async with safe_edit(ctx):
+                await bot.edit_message_text(chat_id=get_chat_id(ctx), message_id=ctx.message.message_id,
+                                            parse_mode='HTML', text=text,
+                                            reply_markup=reply_markup
+                                            )
 
     if update_type == Message:
         await message_switch()

@@ -8,6 +8,7 @@ from aiogram.types import CallbackQuery, Message, InputMediaPhoto, BufferedInput
 from geopy import Nominatim
 
 from app.config import Config
+from app.handlers.fsm.bot_utility import safe_edit
 from app.handlers.fsm.fsm_utility import step_info, StepInfoType
 from app.handlers.fsm.step_types import UTILITY_MESSAGE_IDS, MAIN_STEP_MESSAGE_ID
 from app.handlers.service.helpers.constants import Fields
@@ -162,8 +163,9 @@ async def form_info(ctx: Any, bot: Bot, state: FSMContext):
         data["form_text"] = encoded_text
         if form_message:
             media = InputMediaPhoto(media=FSInputFile(path=photo_path, filename="img"), caption=text)
-            await bot.edit_message_media(chat_id=get_chat_id(ctx), message_id=form_message, media=media,
-                                         reply_markup=AddRouteInlineMarkup().get_form_markup(data['ready_to_publish']))
+            async with safe_edit(ctx):
+                await bot.edit_message_media(chat_id=get_chat_id(ctx), message_id=form_message, media=media,
+                                             reply_markup=AddRouteInlineMarkup().get_form_markup(data['ready_to_publish']))
         else:
             message = await bot.send_photo(chat_id=get_chat_id(ctx),
                                  photo=FSInputFile(path=photo_path, filename="img"),
@@ -187,7 +189,8 @@ async def send_route_on_moderation(ctx, trip_id, bot: Bot, state: FSMContext):
     data = await state.get_data()
     caption = map_route_to_form(data)
     photo_path = _get_photo_path(data)
-    await bot.edit_message_caption(chat_id=get_chat_id(ctx), message_id=ctx.message.message_id, caption=caption)
+    async with safe_edit(ctx):
+        await bot.edit_message_caption(chat_id=get_chat_id(ctx), message_id=ctx.message.message_id, caption=caption)
     await bot.send_message(chat_id=get_chat_id(ctx),
                            reply_to_message_id=ctx.message.message_id,
                            text="🔎 Форма была отправлена на модерацию. Обычно, проверка занимает 15 минут.")
@@ -216,7 +219,8 @@ async def send_moderated_info(ctx, trip_status: TripStatus, chat_id, message_id,
     else:
         raise Exception(f"Wrong Trip status: {trip_status}")
 
-    await bot.edit_message_caption(chat_id=get_chat_id(ctx), message_id=ctx.message.message_id, caption=moderator_caption)
+    async with safe_edit(ctx):
+        await bot.edit_message_caption(chat_id=get_chat_id(ctx), message_id=ctx.message.message_id, caption=moderator_caption)
     await bot.send_message(chat_id=chat_id, reply_to_message_id=message_id, text=user_text)
 
 

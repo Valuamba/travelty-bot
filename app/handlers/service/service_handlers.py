@@ -213,19 +213,30 @@ async def phone_number_handler(msg: Message, bot: Bot, state: FSMContext):
     data = await add_utility_message(msg, state, True)
 
     if msg.content_type is ContentType.TEXT:
-        phone_number = phonenumbers.parse(msg.text)
-        if phonenumbers.is_valid_number(phone_number):
-            data[Fields.PHONE_NUMBER] = msg.text
-            await state.update_data(data)
-            await next(msg, bot, state)
-        else:
+        try:
+            phone_number = phonenumbers.parse(msg.text)
+        except phonenumbers.phonenumberutil.NumberParseException:
             await step_info(msg, state, bot, text="Не корректный номер телефона, повторите еще раз",
                             step_info_type=StepInfoType.Utility
                             )
+            return
+
+        if not phonenumbers.is_valid_number(phone_number):
+            await step_info(msg, state, bot, text="Не корректный номер телефона, повторите еще раз",
+                            step_info_type=StepInfoType.Utility
+                            )
+            return
+        else:
+            await state.update_data(**{Fields.PhoneNumber: msg.text})
+            await fsmPipeline.next(msg, bot, state)
     elif msg.content_type is ContentType.CONTACT:
         data[Fields.PHONE_NUMBER] = msg.contact.phone_number
         await state.update_data(data)
         await next(msg, bot, state)
+
+    elif msg.content_type is ContentType.CONTACT:
+        await state.update_data(**{Fields.PhoneNumber: msg.contact.phone_number})
+        await fsmPipeline.next(msg, bot, state)
 
 
 async def handle_accept_info(ctx: CallbackQuery, callback_data: NavMarkupCD, bot: Bot, state: FSMContext, alchemy_session):
