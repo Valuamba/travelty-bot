@@ -200,7 +200,7 @@ async def send_route_on_moderation(ctx, trip_id, bot: Bot, state: FSMContext):
 
 
 async def send_moderated_info(ctx, trip_status: TripStatus, chat_id, message_id, trip: Trip, bot: Bot, state: FSMContext):
-    caption = map_trip_to_form(trip, ctx.from_user.full_name)
+    caption = map_trip_to_form(trip)
     if trip.caption_path:
         file_path = os.path.join(Config.MEDIA_DIRECTORY_PATH, trip.caption_path)
     else:

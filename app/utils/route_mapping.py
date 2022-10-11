@@ -130,22 +130,18 @@ def map_mock_data_to_template(**kwargs):
        user_id, contact, phone_number, services_str, payment_type, commentary, countries, yandex_domain)
 
 
-def map_trip_to_form(trip: Trip, full_name):
+def map_trip_to_form(trip: Trip, full_name = None):
     departure_dates = dates_to_str_array(trip.departure_dates)
     departure_date_string = ", ".join([date.strftime('%d.%m') for date in departure_dates])
 
     services_str = '\n'.join(map(lambda s: ' - ' + first_letter_to_lower(ServiceTypeLocals[s]), trip.services))
 
     juridical_status = trip.juridical_status
-    if juridical_status == JuridicalStatus.Individual:
-        contact = trip.contact_name
-    elif juridical_status == JuridicalStatus.IndividualEntrepreneur:
+    
+    contact = trip.contact_name
+    if juridical_status == JuridicalStatus.IndividualEntrepreneur:
         contact = trip.company_name
-    else:
-        raise Exception('Wrong juridical status')
 
-    if not contact:
-        contact = full_name
 
     (countries, route, yandex_domain) = map_address_to_country_and_place(departure_address=trip.departure_location.__dict__,
                                                           arrival_address=trip.arrival_location.__dict__,

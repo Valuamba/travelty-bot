@@ -22,6 +22,7 @@ from app.handlers.service.service_info import \
     juridical_status_info, contact_name_info, company_name_info, service_info, \
     payment_type_info, pick_date_info, select_date_info, commentary_info, photo_info, phone_number_info, \
     accept_result_info, send_route_on_moderation, pick_route_point, address_info, confirm_address_info, form_info
+from app.handlers.service.utility import get_user_name
 from app.handlers.test import DataValueFilter
 from app.keyboards.private.add_route import AddRouteInlineMarkup, ConfirmTownCD, JuridicalStatusCD, ServiceTypeCD, \
     NavMarkupCD, PaymentCD, PickDateCD, PickAddressCD, FormCD
@@ -227,7 +228,7 @@ async def phone_number_handler(msg: Message, bot: Bot, state: FSMContext):
                             )
             return
         else:
-            await state.update_data(**{Fields.PhoneNumber: msg.text})
+            await state.update_data(**{Fields.PHONE_NUMBER: msg.text})
             await fsmPipeline.next(msg, bot, state)
     elif msg.content_type is ContentType.CONTACT:
         data[Fields.PHONE_NUMBER] = msg.contact.phone_number
@@ -235,7 +236,7 @@ async def phone_number_handler(msg: Message, bot: Bot, state: FSMContext):
         await next(msg, bot, state)
 
     elif msg.content_type is ContentType.CONTACT:
-        await state.update_data(**{Fields.PhoneNumber: msg.contact.phone_number})
+        await state.update_data(**{Fields.PHONE_NUMBER: msg.contact.phone_number})
         await fsmPipeline.next(msg, bot, state)
 
 
@@ -369,7 +370,8 @@ async def start(ctx: Any, bot: Bot, state: FSMContext):
     await state.clear()
     data = await state.get_data()
     data['user_id'] = get_user_id(ctx)
-    data['full_name'] = ctx.from_user.full_name
+    data['full_name'] = get_user_name(ctx.from_user)
+    data[Fields.CONTACT_NAME] = get_user_name(ctx.from_user)
     data['ready_to_publish'] = False
     await state.update_data(data)
     await form_info(ctx, bot, state)

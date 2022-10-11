@@ -22,8 +22,8 @@ async def errors_handler(update: Update, exception, bot: Bot):
     await bot.send_document(Config.ADMIN_CHAT,
                             document=FSInputFile(path=document_path, filename="log"),
                             caption=f"{hcode(f'Chat id: {get_chat_id_from_update(update)} Error: {type(exception)}: {exception}')}")
-    if notify_user:
-        await bot.send_message(chat_id=get_chat_id_from_update(update), text=f"{text}")
+    # if notify_user:
+    #     await bot.send_message(chat_id=get_chat_id_from_update(update), text=f"{text}")
 
 
 def setup(dp: Dispatcher):
