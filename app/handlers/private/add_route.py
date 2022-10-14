@@ -16,10 +16,16 @@ from app.utils.broadcast import broadcast_smth
 from geopy.geocoders import Nominatim
 import pprint
 import json
-from app.utils.update import get_chat_id
+from app.utils.update import get_chat_id, get_user_id
 
 
 geolocator = Nominatim(user_agent="travelty-bot")
+
+
+async def info_departure_date_inline(ctx, bot: Bot, state: FSMContext):
+    await state.set_state(RoutePrivate.departure_date)
+    await bot.send_message(get_user_id(ctx), text='Введите дату, когда вы будете ехать в формате ДД.ММ.ГГГГ (например, 22.03.2022):',
+                     reply_markup=ReplyKeyboardRemove())
 
 
 async def info_departure_date(msg: Message, state: FSMContext):

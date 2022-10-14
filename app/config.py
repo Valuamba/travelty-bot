@@ -10,6 +10,7 @@ class Config(NamedTuple):
     __env.read_env(os.path.join(os.getcwd(), '.env'))
 
     BASE_DIR = Path(__name__).resolve().parent.parent
+    ROOT_DIR = Path(__name__).resolve().parent
 
     BOT_TOKEN = __env.str('BOT_TOKEN')
 

@@ -24,7 +24,7 @@ from app.utils.update import get_chat_id
 
 async def juridical_status_info(ctx: Any, bot: Bot, state: FSMContext):
     juridical_status = (await state.get_data()).get(Fields.JURIDICAL_STATUS, None)
-    text = f"👨‍⚖ Выберите ваш юридический статус:"
+    text = f"[4/9] 👨‍⚖ Выберите ваш юридический статус:"
     await step_info(ctx, state, bot, text=text,
                     reply_markup=AddRouteInlineMarkup().get_juridical_status_markup(juridical_status))
 
@@ -32,7 +32,7 @@ async def juridical_status_info(ctx: Any, bot: Bot, state: FSMContext):
 async def company_name_info(ctx: Any, bot: Bot, state: FSMContext):
     company_name = (await state.get_data()).get(Fields.COMPANY_NAME, None)
     conditon = company_name is not None
-    text = f"🌐 Введите наименование ИП:"
+    text = f"[5/9] 🌐 Введите наименование ИП:"
 
     if conditon:
         text += f"\n\n📝Введенное наименование: {company_name}"
@@ -55,14 +55,14 @@ async def contact_name_info(ctx: Any, bot: Bot, state: FSMContext):
 
 async def service_info(ctx: Any, bot: Bot, state: FSMContext):
     services = (await state.get_data()).get('services', [])
-    text = f"📣 Выберите одну или несколько оказываемых вами услуг:"
+    text = f"[1/9] 📣 Выберите одну или несколько оказываемых вами услуг:"
     await step_info(ctx, state, bot, text=text,
                     reply_markup=AddRouteInlineMarkup().get_service_markup(services))
 
 
 async def payment_type_info(ctx: Any, bot: Bot, state: FSMContext):
     payment_type = (await state.get_data()).get(Fields.PAYMENT_TYPE, None)
-    text = f"🧮 Выберите тип вознаграждения:"
+    text = f"[7/9] 🧮 Выберите тип вознаграждения:"
     await step_info(ctx, state, bot, text=text,
                     reply_markup=AddRouteInlineMarkup().get_payment_markup(payment_type), update_type=CallbackQuery)
 
@@ -70,7 +70,7 @@ async def payment_type_info(ctx: Any, bot: Bot, state: FSMContext):
 async def pick_route_point(ctx: Any, bot: Bot, state: FSMContext):
     data = await state.get_data()
     data.setdefault('address_points', ['departure_address', 'arrival_address'])
-    text = f"🛣 Заполните пункт отправления и пункт прибытия:"
+    text = f"[2/9] 🛣 Заполните пункт отправления и пункт прибытия:"
     await step_info(ctx, state, bot, text=text,
                     reply_markup=AddRouteInlineMarkup().get_pick_address_markup(data))
     await state.update_data(data)
@@ -78,7 +78,7 @@ async def pick_route_point(ctx: Any, bot: Bot, state: FSMContext):
 
 async def pick_date_info(ctx: Any, bot: Bot, state: FSMContext):
     data = await state.get_data()
-    text = f"📆 Укажите 1-3 даты, в которые вы будете совершать поездку(ки) по заданному маршруту:"
+    text = f"[3/9] 📆 Укажите 1-3 даты, в которые вы будете совершать поездку(ки) по заданному маршруту:"
     await step_info(ctx, state, bot, text=text,
                     reply_markup=AddRouteInlineMarkup().get_pick_date_markup(data))
 
@@ -112,7 +112,7 @@ async def select_date_info(ctx: Any, bot: Bot, state: FSMContext):
 async def commentary_info(ctx: Any, bot: Bot, state: FSMContext):
     commentary = (await state.get_data()).get(Fields.COMMENTARY, None)
     condition = commentary is not None
-    text = "📎 Оставьте дополнительный комментарий:"
+    text = "[9/9] 📎 Оставьте дополнительный комментарий:"
     if condition:
         text += f"\n\nВведенный комментарий: {commentary}"
     help = "⚠ Максимально допустимое количество символов - 150."
@@ -123,7 +123,7 @@ async def commentary_info(ctx: Any, bot: Bot, state: FSMContext):
 async def photo_info(ctx: Any, bot: Bot, state: FSMContext):
     photo = (await state.get_data()).get(Fields.PHOTO, None)
     condition = photo is not None
-    text = "📸 Прикрепите фотографию вашего авто."
+    text = "[8/9] 📸 Прикрепите фотографию вашего авто."
     help = '❗ Рекомендуем не показывать номер автомобиля.'
     await step_info(ctx, state, bot, text=_resolve_text(text, help),
                     reply_markup=AddRouteInlineMarkup().photo_markup(condition), update_type=CallbackQuery)
@@ -132,7 +132,7 @@ async def photo_info(ctx: Any, bot: Bot, state: FSMContext):
 async def phone_number_info(ctx: Any, bot: Bot, state: FSMContext):
     phone_number = (await state.get_data()).get(Fields.PHONE_NUMBER, None)
     condition = phone_number is not None
-    text = '☎️ Введите номер телефона вручную или нажмите на кнопку ниже.'
+    text = '[6/9] ☎️ Введите номер телефона вручную или нажмите на кнопку ниже.'
     if condition:
         text += f"\n\n📝Введенный номер телефона: {phone_number}"
     help = '<i>🔎 Совет: нажмите на кнопку ниже или введите вручную, например +375 29 821 5478.</i>'
