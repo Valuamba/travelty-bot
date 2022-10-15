@@ -37,7 +37,8 @@ class Config(NamedTuple):
     ADMIN_CHAT = __env.str('ADMIN_CHAT')
     TRAVELTY_COM_CHANNEL = __env.str('TRAVELTY_COM_CHANNEL')
     TRAVELTY_COM_LINK = __env.str('TRAVELTY_COM_LINK')
-
+    DISCUSSION_CHANNEL = __env.str('DISCUSSION_CHANNEL')
+    
     DEFAULT_PHOTO = __env.str('DEFAULT_PHOTO')
 
     LOG_FILE_PATH = os.path.join(os.getcwd(), 'logs/log.log')

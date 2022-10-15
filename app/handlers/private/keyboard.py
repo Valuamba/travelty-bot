@@ -19,4 +19,4 @@ class MainInlineMarkup(InlineMarkupConstructor):
             { 'text': '❓ Обучающее видео (1 мин.)', 'url': 'https://www.youtube.com/watch?v=r0JG-qRMDVw&ab_channel=Valentin'}
         ]
     
-        return self.markup(actions, [1])
+        return self.markup(actions, [1, 1])

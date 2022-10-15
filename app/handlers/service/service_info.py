@@ -6,6 +6,7 @@ from aiogram import Bot
 from aiogram.dispatcher.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, InputMediaPhoto, BufferedInputFile, InputFile, FSInputFile
 from geopy import Nominatim
+from sqlalchemy import true
 
 from app.config import Config
 from app.handlers.fsm.bot_utility import safe_edit
@@ -209,10 +210,18 @@ async def send_moderated_info(ctx, trip_status: TripStatus, chat_id, message_id,
     if trip_status == TripStatus.Published:
         moderator_caption = "🔶 Маршрут был опубликован\r\n" + caption
         user_text = "🔶 Маршрут был опубликован"
-        await bot.send_photo(chat_id=Config.TRAVELTY_COM_CHANNEL,
+        channel_message = await bot.send_photo(chat_id=Config.TRAVELTY_COM_CHANNEL,
                              photo=FSInputFile(path=file_path, filename="img"),
                              caption=caption
                              )
+#         await bot.send_message(chat_id=Config.TRAVELTY_COM_CHANNEL, 
+#                                reply_to_message_id=channel_message.message_id,
+#                                text=
+#                                """Это объявление было добавлено водителем через бота @travelty_bot.
+# Видео работы бота - <a href="https://www.youtube.com/watch?v=r0JG-qRMDVw&ab_channel=Valentin">youtube</a>
+#                                """,
+#                                disable_web_page_preview=true
+#                                )
     elif trip_status == TripStatus.Canceled:
         moderator_caption = "❌ Публикация была отклонена\r\n" + caption
         user_text = "❌ Публикация маршрута была отклонена"
