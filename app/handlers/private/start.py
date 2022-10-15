@@ -4,7 +4,6 @@ from aiogram.types import Message, InputFile, FSInputFile, CallbackQuery
 from aiogram.dispatcher.fsm.context import FSMContext
 import os
 
-from cv2 import log
 from app.config import Config
 from app.handlers.private.add_route import info_departure_date, info_departure_date_inline
 from app.handlers.private.keyboard import MainInlineMarkup, StartMenuCD, StartMenuType
