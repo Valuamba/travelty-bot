@@ -25,7 +25,7 @@ async def get_start_message(ctx: Message, bot: Bot):
     text.append('<b>Служба поддержки:</b> @travelty_staff (08:00-23:00 МСК).')
 
     # path = os.path.join(Config.ROOT_DIR, 'app/assets/TRAVELTY_bot.png')
-    path = os.path.join(Config.ROOT_DIR, 'app/assets/1.png')
+    path = os.path.join(Config.ROOT_DIR, 'app/assets/TRAVELTY_bot.png')
     logo = FSInputFile(path, "logo")
 
     logger.info(f"Start command with logo {path}")
